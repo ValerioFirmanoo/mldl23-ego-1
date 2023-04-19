@@ -58,6 +58,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 model_features = pd.DataFrame(pd.read_pickle(os.path.join("saved_features",
                                                                           self.dataset_conf[m].features_name + "_" +
                                                                           pickle_name))['features'])[["uid", "features_" + m]]
+
                 if self.model_features is None:
                     self.model_features = model_features
                 else:
@@ -74,6 +75,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
         ##################################################################
+
         raise NotImplementedError("You should implement _get_train_indices")
 
     def _get_val_indices(self, record, modality):

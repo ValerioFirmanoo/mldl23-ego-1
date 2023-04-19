@@ -9,6 +9,10 @@ def add_paths():
     path_conf = OmegaConf.create()
     path_conf.dataset = {}
     path_conf.dataset.RGB = {}
+    # QUA BISOGNA METTERE I PATH DEI DATASET
+    if platform.node() == 'valerio-hp-laptop':
+        path_conf.wandb_dir = None
+        path_conf.dataset.RGB.data_path = "/home/valerio/Polito_year2/ML/project-ego/dataset"
     if platform.node() == 'tiche':
         path_conf.wandb_dir = "/data2/ggoletto/"
         path_conf.dataset.RGB.data_path = "/data/chiara/EK_data/rgb_flow/"
@@ -28,6 +32,7 @@ conf_path = os.path.join(os.path.dirname(__file__), '../configs')
 
 # Retrieve the default config
 args = OmegaConf.load(os.path.join(conf_path, "default.yaml"))
+#args = OmegaConf.load(os.path.join(conf_path, "I3D_save_feat.yaml"))
 
 # Read the cli args
 cli_args = OmegaConf.from_cli()
