@@ -46,7 +46,7 @@ def main():
     # recover valid paths, domains, classes
     # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
-    #print(num_classes)
+    # print(num_classes)
     # device where everything is run
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -58,7 +58,6 @@ def main():
         # notice that here, the first parameter passed is the input dimension
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
         models[m] = getattr(model_list, args.models[m].model)()
-
 
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.ActionRecognition("action-classifier", models, args.batch_size,
@@ -77,13 +76,15 @@ def main():
         # all dataloaders are generated here
         train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
                                                                        'train', args.dataset, None, None, None,
-                                                                       None, load_feat=True),
+                                                                       None, load_feat=False),
+                                                   # load_feat va settato =False poichè ancora non abbiamo estratto le features,
+                                                   # quando le estrarremo potremo settarlo a True
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
                                                                      'val', args.dataset, None, None, None,
-                                                                     None, load_feat=True),
+                                                                     None, load_feat=False),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
         train(action_classifier, train_loader, val_loader, device, num_classes)
@@ -93,7 +94,7 @@ def main():
             action_classifier.load_last_model(args.resume_from)
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
                                                                      'val', args.dataset, None, None, None,
-                                                                     None, load_feat=True),
+                                                                     None, load_feat=False),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
 
