@@ -42,7 +42,6 @@ def main():
     global training_iterations, modalities
     init_operations()
     modalities = args.modality
-
     # recover valid paths, domains, classes
     # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
@@ -74,8 +73,18 @@ def main():
         # notice, here it is multiplied by tot_batch/batch_size since gradient accumulation technique is adopted
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         # all dataloaders are generated here
+
+        # Qui c'è un errore nel codice originale,
+        # nella definizione di EpicKitchensDataset mette None a tutti i parametri
+        # mentre dovrebbe avere i parametri che stanno in default
+        # Penso che sia dovuto al fatto che avendo loro già estratto le features, non hanno bisogno di passare i parametri
+        # e impostano load_feat a True
+
         train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
-                                                                       'train', args.dataset, None, None, None,
+                                                                       'train', args.dataset,
+                                                                       args.train.num_frames_per_clip.RGB,
+                                                                       args.train.num_clips,
+                                                                       args.train.dense_sampling,
                                                                        None, load_feat=False),
                                                    # load_feat va settato =False poichè ancora non abbiamo estratto le features,
                                                    # quando le estrarremo potremo settarlo a True
@@ -83,7 +92,10 @@ def main():
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'val', args.dataset, None, None, None,
+                                                                     'val', args.dataset,
+                                                                     args.test.num_frames_per_clip.RGB,
+                                                                     args.test.num_clips,
+                                                                     args.test.dense_sampling,
                                                                      None, load_feat=False),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
@@ -93,7 +105,10 @@ def main():
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'val', args.dataset, None, None, None,
+                                                                     'val', args.dataset,
+                                                                     args.test.num_frames_per_clip.RGB,
+                                                                     args.test.num_clips,
+                                                                     args.test.dense_sampling,
                                                                      None, load_feat=False),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)

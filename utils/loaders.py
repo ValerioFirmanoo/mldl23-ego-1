@@ -1,5 +1,7 @@
 import glob
 from abc import ABC
+
+import numpy as np
 import pandas as pd
 from .epic_record import EpicVideoRecord
 import torch.utils.data as data
@@ -7,6 +9,7 @@ from PIL import Image
 import os
 import os.path
 from utils.logger import logger
+
 
 class EpicKitchensDataset(data.Dataset, ABC):
     def __init__(self, split, modalities, mode, dataset_conf, num_frames_per_clip, num_clips, dense_sampling,
@@ -38,6 +41,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         self.stride = self.dataset_conf.stride
         self.additional_info = additional_info
 
+
         if self.mode == "train":
             pickle_name = split + "_train.pkl"
         elif kwargs.get('save', None) is not None:
@@ -57,7 +61,8 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 # load features for each modality
                 model_features = pd.DataFrame(pd.read_pickle(os.path.join("saved_features",
                                                                           self.dataset_conf[m].features_name + "_" +
-                                                                          pickle_name))['features'])[["uid", "features_" + m]]
+                                                                          pickle_name))['features'])[
+                    ["uid", "features_" + m]]
 
                 if self.model_features is None:
                     self.model_features = model_features
@@ -75,8 +80,17 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
         ##################################################################
+        #print(type(self.num_clips))
+        #print(self.num_clips)
+        centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
+                                record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+                                self.num_clips).astype(int)
+        frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
+                             centroids + int(self.num_frames_per_clip/2),
+                             self.num_frames_per_clip).T
+        return frames
 
-        raise NotImplementedError("You should implement _get_train_indices")
+    #raise NotImplementedError("You should implement _get_train_indices")
 
     def _get_val_indices(self, record, modality):
         ##################################################################
@@ -87,10 +101,16 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
         ##################################################################
-        raise NotImplementedError("You should implement _get_val_indices")
+        centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
+                                record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+                                self.num_clips).astype(int)
+        frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
+                             centroids + int(self.num_frames_per_clip/2),
+                             self.num_frames_per_clip).T
+     #raise NotImplementedError("You should implement _get_val_indices")
+
 
     def __getitem__(self, index):
-
         frames = {}
         label = None
         # record is a row of the pkl file containing one sample/action
@@ -120,6 +140,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 # here the testing indexes are obtained with no randomization, i.e., centered
                 segment_indices[modality] = self._get_val_indices(record, modality)
 
+
         for m in self.modalities:
             img, label = self.get(m, record, segment_indices[m])
             frames[m] = img
@@ -129,9 +150,12 @@ class EpicKitchensDataset(data.Dataset, ABC):
         else:
             return frames, label
 
+
     def get(self, modality, record, indices):
         images = list()
         for frame_index in indices:
+            #da capire perchè richiede nella funzione get_val_indices che si ritorni
+            #un array num_clip x num_frames_per_clip quando qui prende solo un array di indici?
             p = int(frame_index)
             # here the frame is loaded in memory
             frame = self._load_data(modality, record, p)
@@ -139,6 +163,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # finally, all the transformations are applied
         process_data = self.transform[modality](images)
         return process_data, record.label
+
 
     def _load_data(self, modality, record, idx):
         data_path = self.dataset_conf[modality].data_path
@@ -162,7 +187,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 else:
                     raise FileNotFoundError
             return [img]
-        
+
         else:
             raise NotImplementedError("Modality not implemented")
 
