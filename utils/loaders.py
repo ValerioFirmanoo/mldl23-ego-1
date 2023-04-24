@@ -82,14 +82,19 @@ class EpicKitchensDataset(data.Dataset, ABC):
         ##################################################################
         #print(type(self.num_clips))
         #print(self.num_clips)
-        centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
-                                record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #                        record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #                        self.num_clips).astype(int)
+
+        centroids = np.linspace( (record.end_frame - record.start_frame) / (2 * self.num_clips),
+                                 (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
                                 self.num_clips).astype(int)
+
         frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
                              centroids + int(self.num_frames_per_clip/2),
                              self.num_frames_per_clip).T
-        return frames
 
+        return frames.flatten()
     #raise NotImplementedError("You should implement _get_train_indices")
 
     def _get_val_indices(self, record, modality):
@@ -101,12 +106,19 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
         ##################################################################
-        centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
-                                record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #                        record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        #                        self.num_clips).astype(int)
+
+        centroids = np.linspace( record.end_frame - record.start_frame / (2 * self.num_clips),
+                                 (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
                                 self.num_clips).astype(int)
+
         frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
                              centroids + int(self.num_frames_per_clip/2),
                              self.num_frames_per_clip).T
+
+        return frames.flatten()
      #raise NotImplementedError("You should implement _get_val_indices")
 
 
@@ -154,8 +166,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
     def get(self, modality, record, indices):
         images = list()
         for frame_index in indices:
-            #da capire perchè richiede nella funzione get_val_indices che si ritorni
-            #un array num_clip x num_frames_per_clip quando qui prende solo un array di indici?
             p = int(frame_index)
             # here the frame is loaded in memory
             frame = self._load_data(modality, record, p)
@@ -173,6 +183,9 @@ class EpicKitchensDataset(data.Dataset, ABC):
             # here the offset for the starting index of the sample is added
 
             idx_untrimmed = record.start_frame + idx
+            #print("idx_untrimmed: ", idx_untrimmed)
+            #print("record.end_frame: ", record.end_frame)
+            #print("record.start_frame: ", record.start_frame)
             try:
                 img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(idx_untrimmed))) \
                     .convert('RGB')
@@ -181,6 +194,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 max_idx_video = int(sorted(glob.glob(os.path.join(data_path,
                                                                   record.untrimmed_video_name,
                                                                   "img_*")))[-1].split("_")[-1].split(".")[0])
+                print("max_idx_video: ", max_idx_video)
                 if idx_untrimmed > max_idx_video:
                     img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(max_idx_video))) \
                         .convert('RGB')
