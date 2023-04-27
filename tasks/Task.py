@@ -93,8 +93,8 @@ class Task(torch.nn.Module, metaclass=ABCMeta):
         """
         logger.info("Restoring {} for modality {} from {}".format(self.name, m, path))
 
-        checkpoint = torch.load(path) #, map_location=torch.device('cpu')) (ADD IF YOU WANT TO RUN ON CPU ONLY)
-
+        #checkpoint = torch.load(path) #, map_location=torch.device('cpu')) (ADD IF YOU WANT TO RUN ON CPU ONLY)
+        checkpoint = torch.load(path,map_location=torch.device('cpu'))
         # Restore the state of the task
         self.current_iter = checkpoint["iteration"]
         self.best_iter = checkpoint["best_iter"]
@@ -102,9 +102,13 @@ class Task(torch.nn.Module, metaclass=ABCMeta):
         self.last_iter_acc = checkpoint["acc_mean"]
 
         # Restore the model parameters
-        self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=True)
+        self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=False)
+        #self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=True)
         # Restore the optimizer parameters
-        self.optimizer[m].load_state_dict(checkpoint["optimizer_state_dict"])
+        #DOMANDA: PERCHE' NON SERVE RESTORARE L'OPTIMIZER? Se uncommento questa riga mi da errore
+        # in teoria per fare solo validation con i pesi pretrained non serve ma forse servirà in futuro nel codice.
+        #print("checkpoint optimizer state dict: ", checkpoint["optimizer_state_dict"]["state"].keys())?
+        #self.optimizer[m].load_state_dict(checkpoint["optimizer_state_dict"])
 
         try:
             self.model_count = checkpoint["last_model_count_saved"]
