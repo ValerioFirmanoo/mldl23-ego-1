@@ -114,9 +114,9 @@ class EpicKitchensDataset(data.Dataset, ABC):
                                  (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
                                 self.num_clips).astype(int)
 
-        frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
-                             centroids + int(self.num_frames_per_clip/2),
-                             self.num_frames_per_clip).T
+        frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2) +1,
+                             centroids + int(self.num_frames_per_clip[modality]/2),
+                             self.num_frames_per_clip[modality]).T
 
         return frames.flatten()
      #raise NotImplementedError("You should implement _get_val_indices")

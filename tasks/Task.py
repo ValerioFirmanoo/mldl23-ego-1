@@ -102,8 +102,9 @@ class Task(torch.nn.Module, metaclass=ABCMeta):
         self.last_iter_acc = checkpoint["acc_mean"]
 
         # Restore the model parameters
-        self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=False)
-        #self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=True)
+        #self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=False)
+        self.task_models[m].load_state_dict(checkpoint["model_state_dict"], strict=True)
+        print('ok')
         # Restore the optimizer parameters
         #DOMANDA: PERCHE' NON SERVE RESTORARE L'OPTIMIZER? Se uncommento questa riga mi da errore
         # in teoria per fare solo validation con i pesi pretrained non serve ma forse servirà in futuro nel codice.
