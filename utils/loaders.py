@@ -110,7 +110,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         #                        record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
         #                        self.num_clips).astype(int)
 
-        centroids = np.linspace( record.end_frame - record.start_frame / (2 * self.num_clips),
+        centroids = np.linspace( (record.end_frame - record.start_frame) / (2 * self.num_clips),
                                  (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
                                 self.num_clips).astype(int)
 
@@ -183,9 +183,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
             # here the offset for the starting index of the sample is added
 
             idx_untrimmed = record.start_frame + idx
-            #print("idx_untrimmed: ", idx_untrimmed)
-            #print("record.end_frame: ", record.end_frame)
-            #print("record.start_frame: ", record.start_frame)
             try:
                 img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(idx_untrimmed))) \
                     .convert('RGB')
