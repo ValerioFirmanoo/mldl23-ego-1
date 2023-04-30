@@ -85,17 +85,38 @@ class EpicKitchensDataset(data.Dataset, ABC):
         #centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
         #                        record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
         #                        self.num_clips).astype(int)
+        record_length = record.end_frame - record.start_frame
 
-        centroids = np.linspace( (record.end_frame - record.start_frame) / (2 * self.num_clips),
-                                 (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        centroids = np.linspace( record_length / (2 * self.num_clips),
+                                 record_length - record_length / (2 * self.num_clips),
                                 self.num_clips).astype(int)
 
-        frames = np.linspace(centroids - int(self.num_frames_per_clip/2) +1,
-                             centroids + int(self.num_frames_per_clip/2),
-                             self.num_frames_per_clip).T
+        if self.num_frames_per_clip[modality] % 2 == 0: # even num_frames_per_clip
+            if centroids[0]-int(self.num_frames_per_clip[modality]/2) < 0: # if the first frame is negative there is an excess
+
+                excess=abs(centroids[0]-int(self.num_frames_per_clip[modality]/2) +1)
+
+                centroids[0]+=excess
+                centroids[-1]-=excess
+
+            frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2) +1,
+                                 centroids + int(self.num_frames_per_clip[modality]/2),
+                                 self.num_frames_per_clip[modality]).T
+
+        else: # odd num_frames_per_clip
+            if centroids[0]-int(self.num_frames_per_clip[modality]/2) < 0: # if the first frame is negative there is an excess
+
+                excess=abs(centroids[0]-int(self.num_frames_per_clip[modality]/2))
+
+                centroids[0]+=excess
+                centroids[-1]-=excess
+
+            frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2),
+                                 centroids + int(self.num_frames_per_clip[modality]/2),
+                                 self.num_frames_per_clip[modality]).T
 
         return frames.flatten()
-    #raise NotImplementedError("You should implement _get_train_indices")
+        #return frames[(frames>=0) & (frames<=record_length)].flatten()
 
     def _get_val_indices(self, record, modality):
         ##################################################################
@@ -109,16 +130,38 @@ class EpicKitchensDataset(data.Dataset, ABC):
         #centroids = np.linspace(record.start_frame + (record.end_frame - record.start_frame) / (2 * self.num_clips),
         #                        record.end_frame - (record.end_frame - record.start_frame) / (2 * self.num_clips),
         #                        self.num_clips).astype(int)
+        record_length = record.end_frame - record.start_frame
 
-        centroids = np.linspace( (record.end_frame - record.start_frame) / (2 * self.num_clips),
-                                 (record.end_frame-record.start_frame) - (record.end_frame - record.start_frame) / (2 * self.num_clips),
+        centroids = np.linspace( record_length / (2 * self.num_clips),
+                                 record_length - record_length / (2 * self.num_clips),
                                 self.num_clips).astype(int)
 
-        frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2) +1,
-                             centroids + int(self.num_frames_per_clip[modality]/2),
-                             self.num_frames_per_clip[modality]).T
+        if self.num_frames_per_clip[modality] % 2 == 0: # even num_frames_per_clip
+            if centroids[0]-int(self.num_frames_per_clip[modality]/2) < 0: # if the first frame is negative there is an excess
+
+                excess=abs(centroids[0]-int(self.num_frames_per_clip[modality]/2) +1)
+
+                centroids[0]+=excess
+                centroids[-1]-=excess
+
+            frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2) +1,
+                                 centroids + int(self.num_frames_per_clip[modality]/2),
+                                 self.num_frames_per_clip[modality]).T
+
+        else: # odd num_frames_per_clip
+            if centroids[0]-int(self.num_frames_per_clip[modality]/2) < 0: # if the first frame is negative there is an excess
+
+                excess=abs(centroids[0]-int(self.num_frames_per_clip[modality]/2))
+
+                centroids[0]+=excess
+                centroids[-1]-=excess
+
+            frames = np.linspace(centroids - int(self.num_frames_per_clip[modality]/2),
+                                 centroids + int(self.num_frames_per_clip[modality]/2),
+                                 self.num_frames_per_clip[modality]).T
 
         return frames.flatten()
+        #return frames[(frames>=0) & (frames<=record_length)].flatten()
      #raise NotImplementedError("You should implement _get_val_indices")
 
 
