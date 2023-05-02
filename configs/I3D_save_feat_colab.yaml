@@ -1,7 +1,7 @@
 action: save # train or test
 name: saved_feat_I3D
 split: test
-resume_from: /home/valerio/Polito_year2/ML/project-ego/checkpoints/I3D_SourceOnlyD2
+resume_from: /content/drive/MyDrive/checkpoints/I3D_SourceOnlyD2
 
 save:
   num_clips: 5
@@ -17,7 +17,7 @@ dataset:
   stride: 2
   resolution: 224
   RGB:
-    data_path: "/home/valerio/Polito_year2/ML/project-ego/dataset"
+    data_path: ??? # path to RGB data
     tmpl: "img_{:010d}.jpg"
   Event:
     rgb4e: 6
