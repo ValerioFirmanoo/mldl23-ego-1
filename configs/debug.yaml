@@ -1,5 +1,5 @@
-action: validate # train or test
+action: train # train or test
 name: test
 
 dataset:
-  shift: D1-D1
+  shift: D2-D2

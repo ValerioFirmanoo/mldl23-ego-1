@@ -85,7 +85,7 @@ def main():
                                                                        args.train.num_frames_per_clip.RGB,
                                                                        args.train.num_clips,
                                                                        args.train.dense_sampling,
-                                                                       None, load_feat=False),
+                                                                       None, load_feat=True),
                                                    # load_feat va settato =False poichè ancora non abbiamo estratto le features,
                                                    # quando le estrarremo potremo settarlo a True
                                                    batch_size=args.batch_size, shuffle=True,
@@ -96,7 +96,7 @@ def main():
                                                                      args.test.num_frames_per_clip.RGB,
                                                                      args.test.num_clips,
                                                                      args.test.dense_sampling,
-                                                                     None, load_feat=False),
+                                                                     None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
         train(action_classifier, train_loader, val_loader, device, num_classes)
@@ -109,7 +109,7 @@ def main():
                                                                      args.test.num_frames_per_clip.RGB,
                                                                      args.test.num_clips,
                                                                      args.test.dense_sampling,
-                                                                     None, load_feat=False),
+                                                                     None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
 
