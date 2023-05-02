@@ -10,6 +10,9 @@ def add_paths():
     path_conf.dataset = {}
     path_conf.dataset.RGB = {}
     # QUA BISOGNA METTERE I PATH DEI DATASET
+    if platform.node() == 'Air-di-Matteo.lan':
+        path_conf.wandb_dir = None
+        path_conf.dataset.RGB.data_path = "/Users/teo/Desktop/PoliTo/MLDL/Dataset"
     if platform.node() == 'valerio-hp-laptop':
         path_conf.wandb_dir = None
         path_conf.dataset.RGB.data_path = "/home/valerio/Polito_year2/ML/project-ego/dataset"

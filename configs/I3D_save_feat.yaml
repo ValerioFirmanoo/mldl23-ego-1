@@ -1,7 +1,7 @@
 action: save # train or test
 name: saved_feat_I3D
 split: test
-resume_from: /home/valerio/Polito_year2/ML/project-ego/checkpoints/I3D_SourceOnlyD2
+resume_from: /Users/teo/Desktop/PoliTo/MLDL/Checkpoints/I3D_SourceOnlyD1
 
 save:
   num_clips: 5
@@ -12,12 +12,12 @@ save:
 
 dataset:
   annotations_path: train_val
-  shift: D2-D2
+  shift: D1-D1
   workers: 4
   stride: 2
   resolution: 224
   RGB:
-    data_path: "/home/valerio/Polito_year2/ML/project-ego/dataset"
+    data_path: "/Users/teo/Desktop/PoliTo/MLDL/Dataset"
     tmpl: "img_{:010d}.jpg"
   Event:
     rgb4e: 6
