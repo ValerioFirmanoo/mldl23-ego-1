@@ -56,7 +56,9 @@ def main():
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
-        models[m] = getattr(model_list, args.models[m].model)()
+        #PAY ATTENTION: the model is istantiated here, teh getattr() function is used to get the model from the list of models
+        # and in the second bracket we pass the arguments needed by the model
+        models[m] = getattr(model_list, args.models[m].model)(args.models[m])
 
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.ActionRecognition("action-classifier", models, args.batch_size,
@@ -73,12 +75,6 @@ def main():
         # notice, here it is multiplied by tot_batch/batch_size since gradient accumulation technique is adopted
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         # all dataloaders are generated here
-
-        # Qui c'è un errore nel codice originale,
-        # nella definizione di EpicKitchensDataset mette None a tutti i parametri
-        # mentre dovrebbe avere i parametri che stanno in default
-        # Penso che sia dovuto al fatto che avendo loro già estratto le features, non hanno bisogno di passare i parametri
-        # e impostano load_feat a True
 
         train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
                                                                        'train', args.dataset,
@@ -156,7 +152,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             data_loader_source = iter(train_loader)
             source_data, source_label = next(data_loader_source)
         end_t = datetime.now()
-
         logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
                     f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
 
@@ -164,15 +159,14 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         source_label = source_label.to(device)
         data = {}
 
-        for clip in range(args.train.num_clips):
-            # in case of multi-clip training one clip per time is processed
-            for m in modalities:
-                data[m] = source_data[m][:, clip].to(device)
 
-            logits, _ = action_classifier.forward(data)
-            action_classifier.compute_loss(logits, source_label, loss_weight=1)
-            action_classifier.backward(retain_graph=False)
-            action_classifier.compute_accuracy(logits, source_label)
+        for m in modalities:
+            data[m] = source_data[m][:, :args.train.num_clips].to(device)
+
+        logits, _ = action_classifier.forward(data)
+        action_classifier.compute_loss(logits, source_label, loss_weight=1)
+        action_classifier.backward(retain_graph=False)
+        action_classifier.compute_accuracy(logits, source_label)
 
         # update weights and zero gradients if total_batch samples are passed
         if gradient_accumulation_step:
@@ -200,7 +194,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
-
 def validate(model, val_loader, device, it, num_classes):
     """
     function to validate the model on the test set
@@ -223,19 +216,19 @@ def validate(model, val_loader, device, it, num_classes):
 
             for m in modalities:
                 batch = data[m].shape[0]
-                logits[m] = torch.zeros((args.test.num_clips, batch, num_classes)).to(device)
+                logits[m] = torch.zeros((batch, num_classes)).to(device)
 
             clip = {}
-            for i_c in range(args.test.num_clips):
-                for m in modalities:
-                    clip[m] = data[m][:, i_c].to(device)
+            #for i_c in range(args.test.num_clips):
+            for m in modalities:
+                clip[m] = data[m][:, :args.test.num_clips].to(device)
 
                 output, _ = model(clip)
                 for m in modalities:
-                    logits[m][i_c] = output[m]
+                    logits[m] = output[m]
 
-            for m in modalities:
-                logits[m] = torch.mean(logits[m], dim=0)
+            #for m in modalities:
+            #    logits[m] = torch.mean(logits[m], dim=0)
 
             model.compute_accuracy(logits, label)
 
