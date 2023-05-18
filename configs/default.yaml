@@ -49,6 +49,8 @@ models:
     lr: 0.01
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    avg_modality: TRN #can be Pooling or TRN
+    avg_modality: Pooling #can be Pooling or TRN
     num_clips: 5 # number of clips in the pooling
     num_classes: 8 # number of classes
+    baseline_type: video # baseline type : video or frame
+    domain_adapt_strategy: [] # domain adaptation strategy adopted

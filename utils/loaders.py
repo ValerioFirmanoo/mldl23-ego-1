@@ -161,8 +161,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
                                  self.num_frames_per_clip[modality]).T
 
         return frames.flatten()
-        #return frames[(frames>=0) & (frames<=record_length)].flatten()
-     #raise NotImplementedError("You should implement _get_val_indices")
 
 
     def __getitem__(self, index):

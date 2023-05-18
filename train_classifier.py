@@ -76,7 +76,16 @@ def main():
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         # all dataloaders are generated here
 
-        train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
+        val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
+                                                                         'val', args.dataset,
+                                                                         args.test.num_frames_per_clip.RGB,
+                                                                         args.test.num_clips,
+                                                                         args.test.dense_sampling,
+                                                                         None, load_feat=True),
+                                                     batch_size=args.batch_size, shuffle=False,
+                                                     num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
+
+        train_loader_source = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
                                                                        'train', args.dataset,
                                                                        args.train.num_frames_per_clip.RGB,
                                                                        args.train.num_clips,
@@ -87,15 +96,17 @@ def main():
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
-        val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'val', args.dataset,
-                                                                     args.test.num_frames_per_clip.RGB,
-                                                                     args.test.num_clips,
-                                                                     args.test.dense_sampling,
-                                                                     None, load_feat=True),
-                                                 batch_size=args.batch_size, shuffle=False,
-                                                 num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
-        train(action_classifier, train_loader, val_loader, device, num_classes)
+        train_loader_target = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
+                                                                       'train', args.dataset,
+                                                                       args.train.num_frames_per_clip.RGB,
+                                                                       args.train.num_clips,
+                                                                       args.train.dense_sampling,
+                                                                       None, load_feat=True),
+                                                   # load_feat va settato =False poichè ancora non abbiamo estratto le features,
+                                                   # quando le estrarremo potremo settarlo a True
+                                                   batch_size=args.batch_size, shuffle=True,
+                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
+        train(action_classifier, train_loader_source,train_loader_target, val_loader, device, num_classes)
 
     elif args.action == "validate":
         if args.resume_from is not None:
@@ -112,7 +123,7 @@ def main():
         validate(action_classifier, val_loader, device, action_classifier.current_iter, num_classes)
 
 
-def train(action_classifier, train_loader, val_loader, device, num_classes):
+def train(action_classifier, train_loader_source , train_loader_target, val_loader, device, num_classes):
     """
     function to train the model on the test set
     action_classifier: Task containing the model to be trained
@@ -123,10 +134,11 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
     """
     global training_iterations, modalities
 
-    data_loader_source = iter(train_loader)
+    data_loader_source = iter(train_loader_source)
+    data_loader_target = iter(train_loader_target)
     action_classifier.train(True)
     action_classifier.zero_grad()
-    iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
+    iteration = action_classifier.current_iter * (args.total_batch // args.batch_size) #AGGIUNGERE UN 2*?
 
     # the batch size should be total_batch but batch accumulation is done with batch size = batch_size.
     # real_iter is the number of iterations if the batch size was really total_batch
@@ -148,25 +160,33 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         # to redefine the iterator
         try:
             source_data, source_label = next(data_loader_source)
+            target_data, target_label = next(data_loader_target)
         except StopIteration:
-            data_loader_source = iter(train_loader)
+            data_loader_source = iter(train_loader_source)
             source_data, source_label = next(data_loader_source)
+            data_loader_target = iter(train_loader_target)
+            target_data, target_label = next(data_loader_target)
+
         end_t = datetime.now()
         logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
                     f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
 
         ''' Action recognition'''
         source_label = source_label.to(device)
-        data = {}
+        target_label = target_label.to(device)
+        data_source = {}
+        data_target = {}
 
 
         for m in modalities:
-            data[m] = source_data[m][:, :args.train.num_clips].to(device)
+            data_source[m] = source_data[m][:, :args.train.num_clips].to(device)
+            data_target[m] = target_data[m][:, :args.train.num_clips].to(device)
 
-        logits, _ = action_classifier.forward(data)
+        #logits, _ = action_classifier.forward(data)
+        logits, _ = action_classifier.forward(data_source, data_target)
         action_classifier.compute_loss(logits, source_label, loss_weight=1)
         action_classifier.backward(retain_graph=False)
-        action_classifier.compute_accuracy(logits, source_label)
+        action_classifier.compute_accuracy(logits['RGB']['pred_video_source'], source_label)
 
         # update weights and zero gradients if total_batch samples are passed
         if gradient_accumulation_step:

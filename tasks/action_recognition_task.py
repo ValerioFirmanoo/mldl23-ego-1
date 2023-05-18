@@ -6,7 +6,7 @@ import wandb
 import tasks
 from utils.logger import logger
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
 
 
 class ActionRecognition(tasks.Task, ABC):
@@ -58,7 +58,7 @@ class ActionRecognition(tasks.Task, ABC):
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
 
-    def forward(self, data: Dict[str, torch.Tensor], **kwargs) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    def forward(self, data_source: Dict[str, torch.Tensor], data_target: Dict[str, torch.Tensor], **kwargs) -> Tuple[Dict[Any, Any], Dict[Any, Dict[Any, Any]]]:
         """Forward step of the task
 
         Parameters
@@ -74,7 +74,8 @@ class ActionRecognition(tasks.Task, ABC):
         logits = {}
         features = {}
         for i_m, m in enumerate(self.modalities):
-            logits[m], feat = self.task_models[m](x=data[m], **kwargs)
+            #logits[m], feat = self.task_models[m](x=data[m], **kwargs)
+            logits[m], feat = self.task_models[m](input_source=data_source[m], input_target=data_target[m], **kwargs)
             if i_m == 0:
                 for k in feat.keys():
                     features[k] = {}
@@ -83,7 +84,7 @@ class ActionRecognition(tasks.Task, ABC):
 
         return logits, features
 
-    def compute_loss(self, logits: Dict[str, torch.Tensor], label: torch.Tensor, loss_weight: float=1.0):
+    def compute_loss(self, logits: Dict[str, Dict[str,torch.Tensor]], label: torch.Tensor, loss_weight: float=1.0):
         """Fuse the logits from different modalities and compute the classification loss.
 
         Parameters
@@ -95,13 +96,38 @@ class ActionRecognition(tasks.Task, ABC):
         loss_weight : float, optional
             weight of the classification loss, by default 1.0
         """
-        fused_logits = reduce(lambda x, y: x + y, logits.values())
-        loss = self.criterion(fused_logits, label) / self.num_clips
+        #fused_logits = reduce(lambda x, y: x + y, logits.values())
+        dic_logits =logits['RGB']
+        print(type(dic_logits))
+        print(dic_logits.keys())
+        loss_frame_source = self.criterion(dic_logits['pred_frame_source'], label.repeat(5))
+        loss_video_source = self.criterion(dic_logits['pred_video_source'], label)
+
+        #DA FARE: gestire bene le dimensioni in ste loss
+
+        loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.zeros(len(dic_logits['domain_source'][0])))
+        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.zeros(len(dic_logits['domain_source'][1])))
+        loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.zeros(len(dic_logits['domain_source'][2])))
+
+        loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.zeros(len(dic_logits['domain_target'][0])))
+        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.zeros(len(dic_logits['domain_target'][1])))
+        loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.zeros(len(dic_logits['domain_target'][2])))
+
+        loss = loss_frame_source + loss_video_source
+
+        if 'GSD' in self.model_args['domain_adapt_strategy']:
+            loss += loss_GSD_source + loss_GSD_target
+        if 'GRD' in self.model_args['domain_adapt_strategy']:
+            loss += loss_GRD_source + loss_GRD_target
+        if 'GVD' in self.model_args['domain_adapt_strategy']:
+            loss += loss_GVD_source + loss_GVD_target
+
+        #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
         self.loss.update(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
 
-    def compute_accuracy(self, logits: Dict[str, torch.Tensor], label: torch.Tensor):
+    def compute_accuracy(self, logits, label: torch.Tensor):
         """Fuse the logits from different modalities and compute the classification accuracy.
 
         Parameters
@@ -111,8 +137,9 @@ class ActionRecognition(tasks.Task, ABC):
         label : torch.Tensor
             ground truth
         """
-        fused_logits = reduce(lambda x, y: x + y, logits.values())
-        self.accuracy.update(fused_logits, label)
+        #fused_logits = reduce(lambda x, y: x + y, logits.values())
+        #dic_logits = logits.values()
+        self.accuracy.update(logits, label)
 
     def wandb_log(self):
         """Log the current loss and top1/top5 accuracies to wandb."""
