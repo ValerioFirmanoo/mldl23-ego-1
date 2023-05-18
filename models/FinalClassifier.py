@@ -27,7 +27,6 @@ class Classifier(nn.Module):
                 x = x.view(-1, 1024)
             elif self.avg_modality == 'TRN':
                 x = self.TRN(x)
-                x = x.sum(1)
             return x
 
         self.temporal_aggregation = temporal_aggregation
@@ -46,40 +45,40 @@ class Classifier(nn.Module):
 
     def forward(self, input_source, input_target, beta, is_train):
         batch_source = input_source.size()[0]
-		batch_target = input_target.size()[0]
+        batch_target = input_target.size()[0]
         num_segments = self.num_clips
         num_class = self.num_classes
 
         feat_all_source = []
-		feat_all_target = []
-		pred_domain_all_source = []
-		pred_domain_all_target = []
+        feat_all_target = []
+        pred_domain_all_source = []
+        pred_domain_all_target = []
 
         # Here we reshape dimensions as batch x num_clip x feat_dim --> (batch * num_clip) x feat_dim because we
         # want to process every clip independently not as part of a batch of clips that refers to the same video because
         # we are at a frame level#
         feat_base_source = input_source.view(-1, input_source.size()[-1]) # e.g. 32 x 5 x 1024 --> 160 x 1024
-		feat_base_target = input_target.view(-1, input_target.size()[-1]) # e.g. 32 x 5 x 1024 --> 160 x 1024
+        feat_base_target = input_target.view(-1, input_target.size()[-1]) # e.g. 32 x 5 x 1024 --> 160 x 1024
 
         #Adaptive Batch Normalization and shared layers to ask, at the moment we put:
         feat_fc_source = feat_base_source
         feat_fc_target = feat_base_target
 
         # === adversarial branch (frame-level), in our case clip-level ===#
-		pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta) # 160 x 1024 --> 2
-		pred_fc_domain_frame_target = self.domain_classifier_frame(feat_fc_target, beta) # 160 x 1024 --> 2
+		pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta) # 160 x 1024 --> 160 x 2
+        pred_fc_domain_frame_target = self.domain_classifier_frame(feat_fc_target, beta) # 160 x 1024 --> 160 x 2
 
         # Da capire un attimo le dimensioni di questo append !!!
         pred_domain_all_source.append(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]))
-		pred_domain_all_target.append(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]))
+        pred_domain_all_target.append(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]))
 
         #=== prediction (frame-level) ===#
-		pred_fc_source = self.fc_classifier_source(feat_fc_source) # 160 x 1024 --> num_classes
-		pred_fc_target = self.fc_classifier_target(feat_fc_target) # 160 x 1024 --> num_classes
+		pred_fc_source = self.fc_classifier_source(feat_fc_source) # 160 x 1024 --> 160 x num_classes
+        pred_fc_target = self.fc_classifier_target(feat_fc_target) # 160 x 1024 --> 160 x num_classes
 
         ### aggregate the frame-based features to relation-based features ###
 		feat_fc_relation_source = self.temporal_aggregation(feat_fc_source)
-		feat_fc_relation_target = self.temporal_aggregation(feat_fc_target)
+        feat_fc_relation_target = self.temporal_aggregation(feat_fc_target)
 
         # Here if we have used AvgPool we obtain a tensor of size batch x feat_dim, otherwise if we have used TRN we obtain
         # a tensor of size batch x num_relations x feat_dim and we have to implement a domain classifier for the TRN case
@@ -93,6 +92,42 @@ class Classifier(nn.Module):
         # elif self.avg_modality == 'Pooling':
         # feat_fc_video_source = feat_fc_relation_source
         # feat_fc_video_target = feat_fc_relation_target
+
+        if self.temporal_aggregation == 'TRN': #we have 4 frames relations
+            pred_fc_domain_relation_source = self.domain_classifier_relation(feat_fc_relation_source, beta) # 32 x 4 x 1024 --> 32 x 2
+            pred_fc_domain_relation_target = self.domain_classifier_relation(feat_fc_relation_target, beta) # 32 x 4 x 1024 --> 32 x 2
+
+        # === prediction (video-level) ===#
+        #aggregate the frame-based features to video-based features, we can use sum() even in AVGPOOL case because we have
+        # alredy only 1 "clip" dimension (batch x feat_dim)
+
+        feat_fc_video_source = feat_fc_relation_source.sum(1) # 32 x 4 x 1024 --> 32 x 1024
+        feat_fc_video_target = feat_fc_relation_target.sum(1) # 32 x 4 x 1024 --> 32 x 1024
+
+        pred_fc_video_source = self.fc_classifier_video_source(feat_fc_video_source)
+        pred_fc_video_target = self.fc_classifier_video_target(feat_fc_video_target)
+
+        pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
+        pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
+
+        #what does he do in the code: he append the DOMAIN predictions of the frame-level and video-level indipendentemente
+        #from the aggregation method, then appends domain_relation_predictions only if we have used TRN as aggregation method
+        # or another time the same domain_video_predictions if we have used AVGPOOL as aggregation method
+
+        if self.temporal_aggregation == 'TRN': #append domain_relation_predictions
+
+            num_relation = feat_fc_video_relation_source.size()[1]
+            pred_domain_all_source.append(pred_fc_domain_video_relation_source.view((batch_source, num_relation) + pred_fc_domain_video_relation_source.size()[-1:]))
+            pred_domain_all_target.append(pred_fc_domain_video_relation_target.view((batch_target, num_relation) + pred_fc_domain_video_relation_target.size()[-1:]))
+
+        else self.temporal_aggregation == 'Pooling': #append domain_video_predictions again
+            pred_domain_all_source.append(pred_fc_domain_video_source) # if not trn-m, add dummy tensors for relation features
+            pred_domain_all_target.append(pred_fc_domain_video_target) # if not trn-m, add dummy tensors for relation features
+
+        pred_domain_all_source.append(pred_fc_domain_video_source.view((batch_source,) + pred_fc_domain_video_source.size()[-1:]))
+        pred_domain_all_target.append(pred_fc_domain_video_target.view((batch_target,) + pred_fc_domain_video_target.size()[-1:]))
+
+
 
 
 
