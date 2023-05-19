@@ -15,7 +15,7 @@ class Classifier(nn.Module):
         self.num_classes = model_args.num_classes
         self.num_clips = model_args.num_clips
         self.baseline_type = model_args.baseline_type
-        self.beta = model_args.lr
+        self.beta = model_args.beta
 
         self.AvgPool = nn.AdaptiveAvgPool2d((1,1024))
 
@@ -28,7 +28,8 @@ class Classifier(nn.Module):
             relation_domain_classifier = nn.Sequential(
                 nn.Linear(1024, 1024),
                 nn.ReLU(),
-                nn.Linear(1024, 2)
+                nn.Linear(1024, 2),
+                nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -53,7 +54,8 @@ class Classifier(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.Softmax())
 
         self.GVD = nn.Sequential(
             nn.Dropout(0.5),
@@ -61,11 +63,16 @@ class Classifier(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.Softmax())
 
-        self.fc_classifier_frame = nn.Linear(1024, self.num_classes)
+        self.fc_classifier_frame = nn.Sequential(
+            nn.Linear(1024, self.num_classes),
+            nn.Softmax())
 
-        self.fc_classifier_video = nn.Linear(1024, self.num_classes)
+        self.fc_classifier_video = nn.Sequential(
+            nn.Linear(1024, self.num_classes),
+            nn.Softmax())
 
     def domain_classifier_frame(self, feat, beta):
         feat_fc_domain_frame = GradReverse.apply(feat, beta)

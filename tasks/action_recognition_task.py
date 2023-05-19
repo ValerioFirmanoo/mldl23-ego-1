@@ -47,7 +47,7 @@ class ActionRecognition(tasks.Task, ABC):
 
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
-                                                   reduce=None, reduction='none')
+                                                   reduce=None, reduction='mean')
         
         # Initializeq the model parameters and the optimizer
         optim_params = {}
@@ -98,28 +98,38 @@ class ActionRecognition(tasks.Task, ABC):
         """
         #fused_logits = reduce(lambda x, y: x + y, logits.values())
         dic_logits =logits['RGB']
-        print(type(dic_logits))
-        print(dic_logits.keys())
+        #print(type(dic_logits))
+        #print(dic_logits.keys())
         loss_frame_source = self.criterion(dic_logits['pred_frame_source'], label.repeat(5))
         loss_video_source = self.criterion(dic_logits['pred_video_source'], label)
 
         #DA FARE: gestire bene le dimensioni in ste loss
+        #torch.cat((torch.ones(len(dic_logits['domain_source'][0]),1), torch.zeros(len(dic_logits['domain_source'][0]),1)),dim=1)
 
-        loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.zeros(len(dic_logits['domain_source'][0])))
-        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.zeros(len(dic_logits['domain_source'][1])))
-        loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.zeros(len(dic_logits['domain_source'][2])))
+        dic_logits['domain_source'][0] = dic_logits['domain_source'][0].reshape(-1,2)
+        dic_logits['domain_target'][0] = dic_logits['domain_target'][0].reshape(-1,2)
 
-        loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.zeros(len(dic_logits['domain_target'][0])))
-        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.zeros(len(dic_logits['domain_target'][1])))
-        loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.zeros(len(dic_logits['domain_target'][2])))
+        #print(dic_logits['domain_source'][0].shape, dic_logits['domain_source'][1].shape, dic_logits['domain_source'][2].shape)
+        #print(dic_logits['domain_target'][0].shape, dic_logits['domain_target'][1].shape, dic_logits['domain_target'][2].shape)
 
+        loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1))
+        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1))
+        loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1))
+
+        loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.cat((torch.zeros(len(dic_logits['domain_target'][0]),1), torch.ones(len(dic_logits['domain_target'][0]),1)),dim=1))
+        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.cat((torch.zeros(len(dic_logits['domain_target'][1]),1), torch.ones(len(dic_logits['domain_target'][1]),1)),dim=1))
+        loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.cat((torch.zeros(len(dic_logits['domain_target'][2]),1), torch.ones(len(dic_logits['domain_target'][2]),1)),dim=1))
+
+        #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         loss = loss_frame_source + loss_video_source
 
-        if 'GSD' in self.model_args['domain_adapt_strategy']:
+        #print(self.model_args, type(self.model_args))
+        #print(self.model_args['RGB']['domain_adapt_strategy'])
+        if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += loss_GSD_source + loss_GSD_target
-        if 'GRD' in self.model_args['domain_adapt_strategy']:
+        if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += loss_GRD_source + loss_GRD_target
-        if 'GVD' in self.model_args['domain_adapt_strategy']:
+        if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += loss_GVD_source + loss_GVD_target
 
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
