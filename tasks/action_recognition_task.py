@@ -39,6 +39,8 @@ class ActionRecognition(tasks.Task, ABC):
         super().__init__(name, task_models, batch_size, total_batch, models_dir, args, **kwargs)
         self.model_args = model_args
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # self.accuracy and self.loss track the evolution of the accuracy and the training loss
         self.accuracy = utils.Accuracy(topk=(1, 5), classes=num_classes)
         self.loss = utils.AverageMeter()
@@ -98,8 +100,6 @@ class ActionRecognition(tasks.Task, ABC):
         """
         #fused_logits = reduce(lambda x, y: x + y, logits.values())
         dic_logits =logits['RGB']
-        #print(type(dic_logits))
-        #print(dic_logits.keys())
         loss_frame_source = self.criterion(dic_logits['pred_frame_source'], label.repeat(5))
         loss_video_source = self.criterion(dic_logits['pred_video_source'], label)
 
@@ -112,7 +112,7 @@ class ActionRecognition(tasks.Task, ABC):
         #print(dic_logits['domain_source'][0].shape, dic_logits['domain_source'][1].shape, dic_logits['domain_source'][2].shape)
         #print(dic_logits['domain_target'][0].shape, dic_logits['domain_target'][1].shape, dic_logits['domain_target'][2].shape)
 
-        loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1))
+        loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1).to(self.device))
         loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1))
         loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1))
 
