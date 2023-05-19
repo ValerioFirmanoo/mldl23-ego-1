@@ -113,12 +113,12 @@ class ActionRecognition(tasks.Task, ABC):
         #print(dic_logits['domain_target'][0].shape, dic_logits['domain_target'][1].shape, dic_logits['domain_target'][2].shape)
 
         loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1).to(self.device))
-        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1))
-        loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1))
+        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1).to(self.device))
+        loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1).to(self.device))
 
-        loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.cat((torch.zeros(len(dic_logits['domain_target'][0]),1), torch.ones(len(dic_logits['domain_target'][0]),1)),dim=1))
-        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.cat((torch.zeros(len(dic_logits['domain_target'][1]),1), torch.ones(len(dic_logits['domain_target'][1]),1)),dim=1))
-        loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.cat((torch.zeros(len(dic_logits['domain_target'][2]),1), torch.ones(len(dic_logits['domain_target'][2]),1)),dim=1))
+        loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.cat((torch.zeros(len(dic_logits['domain_target'][0]),1), torch.ones(len(dic_logits['domain_target'][0]),1)),dim=1).to(self.device))
+        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.cat((torch.zeros(len(dic_logits['domain_target'][1]),1), torch.ones(len(dic_logits['domain_target'][1]),1)),dim=1).to(self.device))
+        loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.cat((torch.zeros(len(dic_logits['domain_target'][2]),1), torch.ones(len(dic_logits['domain_target'][2]),1)),dim=1).to(self.device))
 
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         loss = loss_frame_source + loss_video_source
