@@ -112,18 +112,29 @@ class ActionRecognition(tasks.Task, ABC):
 
         #print(dic_logits['domain_source'][0].shape, dic_logits['domain_source'][1].shape, dic_logits['domain_source'][2].shape)
         #print(dic_logits['domain_target'][0].shape, dic_logits['domain_target'][1].shape, dic_logits['domain_target'][2].shape)
+        #print(dic_logits['domain_source'][1])
 
         loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1).to(self.device))
-        loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1).to(self.device))
+        if self.model_args['RGB']['avg_modality'] == 'TRN':
+            domain_source_relation=dic_logits['domain_source'][1].reshape(-1,2)
+            loss_GRD_source = self.criterion(domain_source_relation, torch.cat((torch.ones((len(domain_source_relation),1)), torch.zeros((len(domain_source_relation),1))),dim=1).to(self.device))
+        elif self.model_args['RGB']['avg_modality'] == 'Pooling':
+            loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1).to(self.device))
         loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1).to(self.device))
 
         loss_GSD_target = self.criterion(dic_logits['domain_target'][0], torch.cat((torch.zeros(len(dic_logits['domain_target'][0]),1), torch.ones(len(dic_logits['domain_target'][0]),1)),dim=1).to(self.device))
-        loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.cat((torch.zeros(len(dic_logits['domain_target'][1]),1), torch.ones(len(dic_logits['domain_target'][1]),1)),dim=1).to(self.device))
+        if self.model_args['RGB']['avg_modality'] == 'TRN':
+            domain_target_relation=dic_logits['domain_target'][1].reshape(-1,2)
+            loss_GRD_target = self.criterion(domain_target_relation, torch.cat((torch.ones((len(domain_target_relation),1)), torch.zeros((len(domain_target_relation),1))),dim=1).to(self.device))
+        elif self.model_args['RGB']['avg_modality'] == 'Pooling':
+            loss_GRD_target = self.criterion(dic_logits['domain_target'][1], torch.cat((torch.ones((len(dic_logits['domain_target'][1]),1)), torch.zeros((len(dic_logits['domain_target'][1]),1))),dim=1).to(self.device))
         loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.cat((torch.zeros(len(dic_logits['domain_target'][2]),1), torch.ones(len(dic_logits['domain_target'][2]),1)),dim=1).to(self.device))
 
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
-        loss = (loss_frame_source/dic_logits['pred_frame_source'].size(0)) + (loss_video_source/dic_logits['pred_video_source'].size(0))
+        #loss = (loss_frame_source) + (loss_video_source)
+        loss = loss_video_source
 
+        loss= loss/self.num_clips
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
@@ -137,6 +148,7 @@ class ActionRecognition(tasks.Task, ABC):
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
         self.loss.update(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
+        print("loss_frame: ",loss_frame_source, "loss_video: ", loss_video_source, "loss_GSD: ", loss_GSD_source + loss_GSD_target)
 
     def compute_accuracy(self, logits, label: torch.Tensor):
         """Fuse the logits from different modalities and compute the classification accuracy.
