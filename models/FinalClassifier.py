@@ -29,7 +29,7 @@ class Classifier(nn.Module):
                 nn.Linear(1024, 1024),
                 nn.ReLU(),
                 nn.Linear(1024, 2),
-                nn.Softmax()
+                #nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -55,7 +55,8 @@ class Classifier(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
             nn.ReLU(),
-            nn.Softmax())
+            #nn.Softmax()
+            )
 
         self.GVD = nn.Sequential(
             nn.Dropout(0.5),
@@ -64,15 +65,18 @@ class Classifier(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
             nn.ReLU(),
-            nn.Softmax())
+            #nn.Softmax()
+        )
 
         self.fc_classifier_frame = nn.Sequential(
             nn.Linear(1024, self.num_classes),
-            nn.Softmax())
+            #nn.Softmax()
+        )
 
         self.fc_classifier_video = nn.Sequential(
             nn.Linear(1024, self.num_classes),
-            nn.Softmax())
+            #nn.Softmax()
+        )
 
     def domain_classifier_frame(self, feat, beta):
         feat_fc_domain_frame = GradReverse.apply(feat, beta)

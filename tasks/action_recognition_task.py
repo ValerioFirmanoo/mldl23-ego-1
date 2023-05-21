@@ -100,6 +100,7 @@ class ActionRecognition(tasks.Task, ABC):
         """
         #fused_logits = reduce(lambda x, y: x + y, logits.values())
         dic_logits =logits['RGB']
+        #print(dic_logits['pred_frame_source'].size(0))
         loss_frame_source = self.criterion(dic_logits['pred_frame_source'], label.repeat(5))
         loss_video_source = self.criterion(dic_logits['pred_video_source'], label)
 
@@ -121,16 +122,16 @@ class ActionRecognition(tasks.Task, ABC):
         loss_GVD_target = self.criterion(dic_logits['domain_target'][2], torch.cat((torch.zeros(len(dic_logits['domain_target'][2]),1), torch.ones(len(dic_logits['domain_target'][2]),1)),dim=1).to(self.device))
 
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
-        loss = loss_frame_source + loss_video_source
+        loss = (loss_frame_source/dic_logits['pred_frame_source'].size(0)) + (loss_video_source/dic_logits['pred_video_source'].size(0))
 
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += loss_GSD_source + loss_GSD_target
+            loss -= (loss_GSD_source + loss_GSD_target)/dic_logits['domain_source'][0].size(0)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += loss_GRD_source + loss_GRD_target
+            loss -= (loss_GRD_source + loss_GRD_target)/dic_logits['domain_source'][1].size(0)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += loss_GVD_source + loss_GVD_target
+            loss -= (loss_GVD_source + loss_GVD_target)//dic_logits['domain_source'][2].size(0)
 
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
