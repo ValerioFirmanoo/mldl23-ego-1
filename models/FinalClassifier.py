@@ -19,7 +19,7 @@ class Classifier(nn.Module):
 
         self.AvgPool = nn.AdaptiveAvgPool2d((1,1024))
 
-        self.TRN=RelationModuleMultiScale(1024, 1024, self.num_clips)
+        self.TRN = RelationModuleMultiScale(1024, 1024, self.num_clips)
 
         #self.temporal_aggregation = temporal_aggregation
 
@@ -29,7 +29,7 @@ class Classifier(nn.Module):
                 nn.Linear(1024, 1024),
                 nn.ReLU(),
                 nn.Linear(1024, 2),
-                #nn.Softmax()
+                nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -55,7 +55,7 @@ class Classifier(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
             nn.ReLU(),
-            #nn.Softmax()
+            nn.Softmax()
             )
 
         self.GVD = nn.Sequential(
@@ -65,17 +65,20 @@ class Classifier(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(1024, 2),
             nn.ReLU(),
-            #nn.Softmax()
+            nn.Softmax()
         )
 
         self.fc_classifier_frame = nn.Sequential(
             nn.Linear(1024, self.num_classes),
-            #nn.Softmax()
+            nn.ReLU(),
+            nn.Softmax()
         )
 
         self.fc_classifier_video = nn.Sequential(
+            nn.Dropout(0.5),
             nn.Linear(1024, self.num_classes),
-            #nn.Softmax()
+            nn.ReLU(),
+            nn.Softmax()
         )
 
     def domain_classifier_frame(self, feat, beta):
@@ -153,6 +156,8 @@ class Classifier(nn.Module):
         # Qua questione shared layer non si capisce
         feat_fc_source = self.fc0(feat_base_source) # 160 x 1024 --> 160 x 1024
         feat_fc_target = self.fc0(feat_base_target) # 160 x 1024 --> 160 x 1024
+        #feat_fc_source = feat_base_source
+        #feat_fc_target = feat_base_target
 
         # === adversarial branch (frame-level), in our case clip-level ===#
         pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta) # 160 x 1024 --> 160 x 2
@@ -161,6 +166,7 @@ class Classifier(nn.Module):
     # Da capire un attimo le dimensioni di questo append !!!
         pred_domain_all_source.append(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]))
         pred_domain_all_target.append(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]))
+        #print(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]).shape)
 
     #=== prediction (frame-level) ===#
         pred_fc_source = self.fc_classifier_frame(feat_fc_source) # 160 x 1024 --> 160 x num_classes

@@ -132,7 +132,7 @@ class ActionRecognition(tasks.Task, ABC):
 
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         #loss = (loss_frame_source) + (loss_video_source)
-        loss = loss_video_source
+        loss = loss_frame_source + loss_video_source
 
         loss= loss/self.num_clips
         #print(self.model_args, type(self.model_args))
@@ -148,7 +148,7 @@ class ActionRecognition(tasks.Task, ABC):
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
         self.loss.update(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
-        print("loss_frame: ",loss_frame_source, "loss_video: ", loss_video_source, "loss_GSD: ", loss_GSD_source + loss_GSD_target)
+        #print("loss_frame: ",loss_frame_source, "loss_video: ", loss_video_source, "loss_GSD: ", loss_GSD_source + loss_GSD_target)
 
     def compute_accuracy(self, logits, label: torch.Tensor):
         """Fuse the logits from different modalities and compute the classification accuracy.
