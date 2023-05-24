@@ -17,25 +17,25 @@ class Classifier(nn.Module):
         self.baseline_type = model_args.baseline_type
         self.beta = model_args.beta
 
-        self.AvgPool = nn.AdaptiveAvgPool2d((1,1024))
+        self.AvgPool = nn.AdaptiveAvgPool2d((1,512))
 
-        self.TRN = RelationModuleMultiScale(1024, 1024, self.num_clips)
+        self.TRN = RelationModuleMultiScale(512, 512, self.num_clips)
 
         #self.temporal_aggregation = temporal_aggregation
 
         self.relation_domain_classifier_all = nn.ModuleList()
         for i in range(self.num_clips-1):
             relation_domain_classifier = nn.Sequential(
-                nn.Linear(1024, 1024),
+                nn.Linear(512, 512),
                 nn.ReLU(),
-                nn.Linear(1024, 2),
-                nn.Softmax()
+                nn.Linear(512, 2),
+               # nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
         self.fc0 = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(1024, 1024),
+            nn.Linear(1024, 512),
             nn.ReLU())
 
         self.fc1 = nn.Sequential(
@@ -45,40 +45,40 @@ class Classifier(nn.Module):
 
         self.fc2 = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(1024, self.num_classes),
+            nn.Linear(512, self.num_classes),
             nn.ReLU())
 
         self.GSD = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(1024, 1024),
+            nn.Linear(512, 512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(1024, 2),
+            nn.Linear(512, 2),
             nn.ReLU(),
             nn.Softmax()
             )
 
         self.GVD = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(1024, 1024),
+            nn.Linear(512, 512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(1024, 2),
+            nn.Linear(512, 2),
             nn.ReLU(),
             nn.Softmax()
         )
 
         self.fc_classifier_frame = nn.Sequential(
-            nn.Linear(1024, self.num_classes),
+            nn.Linear(512, self.num_classes),
             nn.ReLU(),
-            nn.Softmax()
+            #nn.Softmax()
         )
 
         self.fc_classifier_video = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(1024, self.num_classes),
+            nn.Linear(512, self.num_classes),
             nn.ReLU(),
-            nn.Softmax()
+            #nn.Softmax()
         )
 
     def domain_classifier_frame(self, feat, beta):
@@ -113,7 +113,7 @@ class Classifier(nn.Module):
 
     def temporal_aggregation(self, x):
 
-        x=x.view(-1, self.num_clips, 1024) #restore the original shape of the tensor
+        x=x.view(-1, self.num_clips, 512) #restore the original shape of the tensor
 
         if self.avg_modality == 'Pooling':
             x = self.AvgPool(x)

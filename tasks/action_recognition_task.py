@@ -133,17 +133,21 @@ class ActionRecognition(tasks.Task, ABC):
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         #loss = (loss_frame_source) + (loss_video_source)
         loss = loss_frame_source + loss_video_source
-
-        loss= loss/self.num_clips
+        #print('loss ',loss)
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss -= (loss_GSD_source + loss_GSD_target)/dic_logits['domain_source'][0].size(0)
+            loss += (loss_GSD_source + loss_GSD_target)
+            #print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
+            #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss -= (loss_GRD_source + loss_GRD_target)/dic_logits['domain_source'][1].size(0)
+            loss += (loss_GRD_source + loss_GRD_target)
+            #print("loss_GRD: ", loss_GRD_source + loss_GRD_target)
+            #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss -= (loss_GVD_source + loss_GVD_target)//dic_logits['domain_source'][2].size(0)
-
+            loss += (loss_GVD_source + loss_GVD_target)
+            #print("loss_GVD: ", loss_GVD_source + loss_GVD_target)
+            #print('loss',loss)
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
