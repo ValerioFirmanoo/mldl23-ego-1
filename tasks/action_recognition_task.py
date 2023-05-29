@@ -5,6 +5,7 @@ from functools import reduce
 import wandb
 import tasks
 from utils.logger import logger
+from torch.distributions import Categorical
 
 from typing import Dict, Tuple, Any
 
@@ -146,6 +147,18 @@ class ActionRecognition(tasks.Task, ABC):
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += (loss_GVD_source + loss_GVD_target)
+        if 'ATT' in self.model_args['RGB']['domain_adapt_strategy']:
+            #vector of entropies for all data samples
+            entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2].softmax(dim=1)).entropy()
+            entropies_gvd_target = Categorical(probs=dic_logits['domain_target'][2].softmax(dim=1)).entropy()
+            #entropy for video label
+            entropy_video_source_label=Categorical(probs=dic_logits['pred_video_source_att'].softmax(dim=1)).entropy()
+            entropy_video_target_label = Categorical(probs=dic_logits['pred_video_target_att'].softmax(dim=1)).entropy()
+            #sum of all entropies
+            entropy_source=torch.mean((1 + entropies_gvd_source)*entropy_video_source_label)
+            entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
+            loss += entropy_source
+            loss += entropy_target
             #print("loss_GVD: ", loss_GVD_source + loss_GVD_target)
             #print('loss',loss)
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?

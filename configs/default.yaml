@@ -1,5 +1,5 @@
-action: ??? # train or test
-name: ??? # name of the experiment needed for the logs
+action: train # train or test
+name: train # name of the experiment needed for the logs
 modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
@@ -29,12 +29,12 @@ test:
 
 dataset:
   annotations_path: train_val # path for the annotations data
-  shift: ??? # shifts of the dataset
+  shift: D3-D2 # shifts of the dataset
   workers: 4 # number of workers for the dataloader
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
   RGB:
-    data_path: ??? # path to RGB data
+    data_path: a # path to RGB data
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
     features_name: saved_feat_I3D
   Event: # not neeeded for the project
@@ -51,8 +51,8 @@ models:
     sgd_momentum: 0.9
     weight_decay: 1e-7
     beta: 0.5
-    avg_modality: Pooling #can be Pooling or TRN
+    avg_modality: TRN #can be Pooling or TRN
     num_clips: 5 # number of clips in the pooling
     num_classes: 8 # number of classes
     baseline_type: video # baseline type : video or frame
-    domain_adapt_strategy: ['GSD'] # domain adaptation strategy adopted
+    domain_adapt_strategy: ['GRD','GVD','GSD','ATT'] # domain adaptation strategy adopted
