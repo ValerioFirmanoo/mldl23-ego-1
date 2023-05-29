@@ -33,7 +33,7 @@ class Classifier(nn.Module):
                 nn.Linear(512, 512),
                 nn.ReLU(),
                 nn.Linear(512, 2),
-               # nn.Softmax()
+                nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -100,8 +100,9 @@ class Classifier(nn.Module):
             feat_fc_domain_relation_single = GradReverse.apply(feat_relation_single, beta) # the same beta for all relations (for now)
 
             pred_fc_domain_relation_single = self.relation_domain_classifier_all[i](feat_fc_domain_relation_single)
-            entropies = Categorical(probs=pred_fc_domain_relation_single.softmax(dim=1)).entropy()
-            attention.append(1-entropies)
+            #print('pred_fc_domain_relation_single: ',pred_fc_domain_relation_single)
+            #entropies = Categorical(probs=pred_fc_domain_relation_single).entropy()
+            #attention.append(1-entropies)
 
             if pred_fc_domain_relation_video is None:
                 pred_fc_domain_relation_video = pred_fc_domain_relation_single.view(-1,1,2)
@@ -171,6 +172,7 @@ class Classifier(nn.Module):
         # === adversarial branch (frame-level), in our case clip-level ===#
         pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta) # 160 x 1024 --> 160 x 2
         pred_fc_domain_frame_target = self.domain_classifier_frame(feat_fc_target, beta) # 160 x 1024 --> 160 x 2
+        #print('pred_fc_domain_frame_source: ',pred_fc_domain_frame_source)
 
     # Da capire un attimo le dimensioni di questo append !!!
         pred_domain_all_source.append(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]))
@@ -211,7 +213,7 @@ class Classifier(nn.Module):
             feat_fc_video_relation_target_att = feat_fc_video_relation_target.clone()
             for i in range(0,len(att_source)):
                 feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
-                feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
+                feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
                 feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
                 feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
                 pred_fc_video_source_att = self.fc_classifier_video(feat_fc_video_source_att)
@@ -225,7 +227,7 @@ class Classifier(nn.Module):
 
         pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
         pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
-
+        #print('pred_fc_domain_video_source: ',pred_fc_domain_video_source)
         #what does he do in the code: he append the DOMAIN predictions of the frame-level and video-level indipendentemente
         #from the aggregation method, then appends domain_relation_predictions only if we have used TRN as aggregation method
         # or another time the same domain_video_predictions if we have used AVGPOOL as aggregation method

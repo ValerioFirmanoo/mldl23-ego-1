@@ -134,23 +134,28 @@ class ActionRecognition(tasks.Task, ABC):
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         #loss = (loss_frame_source) + (loss_video_source)
         loss = loss_frame_source + loss_video_source
-        #print('loss ',loss)
+        print('loss ',loss)
+        if any([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD']]):
+            molt_factor = [0.75,0.5,0.75]
+        else:
+            molt_factor = [1,1,1]
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += (loss_GSD_source + loss_GSD_target)
-            #print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
+            loss += molt_factor[0]*(loss_GSD_source + loss_GSD_target)
+            print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
             #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += (loss_GRD_source + loss_GRD_target)
-            #print("loss_GRD: ", loss_GRD_source + loss_GRD_target)
+            loss += molt_factor[1]*(loss_GRD_source + loss_GRD_target)
+            print("loss_GRD: ", loss_GRD_source + loss_GRD_target)
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
-            loss += (loss_GVD_source + loss_GVD_target)
+            loss += molt_factor[2]*(loss_GVD_source + loss_GVD_target)
+            print("loss_GVD: ", loss_GVD_source + loss_GVD_target)
         if 'ATT' in self.model_args['RGB']['domain_adapt_strategy']:
             #vector of entropies for all data samples
-            entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2].softmax(dim=1)).entropy()
-            entropies_gvd_target = Categorical(probs=dic_logits['domain_target'][2].softmax(dim=1)).entropy()
+            entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2]).entropy()
+            entropies_gvd_target = Categorical(probs=dic_logits['domain_target'][2]).entropy()
             #entropy for video label
             entropy_video_source_label=Categorical(probs=dic_logits['pred_video_source_att'].softmax(dim=1)).entropy()
             entropy_video_target_label = Categorical(probs=dic_logits['pred_video_target_att'].softmax(dim=1)).entropy()
@@ -159,8 +164,7 @@ class ActionRecognition(tasks.Task, ABC):
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
             loss += entropy_source
             loss += entropy_target
-            #print("loss_GVD: ", loss_GVD_source + loss_GVD_target)
-            #print('loss',loss)
+            print("loss_ATT: ", entropy_source + entropy_target)
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
