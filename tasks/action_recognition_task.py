@@ -135,8 +135,8 @@ class ActionRecognition(tasks.Task, ABC):
         #loss = (loss_frame_source) + (loss_video_source)
         loss = loss_frame_source + loss_video_source
         print('loss ',loss)
-        if any([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD']]):
-            molt_factor = [0.75,0.5,0.75]
+        if all([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD','ATT']]):
+            molt_factor = [0.75,0.5,0.75,0.3]
         else:
             molt_factor = [1,1,1]
         #print(self.model_args, type(self.model_args))
@@ -147,11 +147,11 @@ class ActionRecognition(tasks.Task, ABC):
             #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[1]*(loss_GRD_source + loss_GRD_target)
-            print("loss_GRD: ", loss_GRD_source + loss_GRD_target)
+            print("loss_GRD: ", molt_factor[1]*(loss_GRD_source + loss_GRD_target))
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[2]*(loss_GVD_source + loss_GVD_target)
-            print("loss_GVD: ", loss_GVD_source + loss_GVD_target)
+            print("loss_GVD: ", molt_factor[2]*(loss_GVD_source + loss_GVD_target))
         if 'ATT' in self.model_args['RGB']['domain_adapt_strategy']:
             #vector of entropies for all data samples
             entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2]).entropy()
@@ -162,9 +162,8 @@ class ActionRecognition(tasks.Task, ABC):
             #sum of all entropies
             entropy_source=torch.mean((1 + entropies_gvd_source)*entropy_video_source_label)
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
-            loss += entropy_source
-            loss += entropy_target
-            print("loss_ATT: ", entropy_source + entropy_target)
+            loss += molt_factor[3]*(entropy_source + entropy_target)
+            print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
