@@ -210,21 +210,25 @@ class Classifier(nn.Module):
                 #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_source_att[:,i,:])
                 #feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
                 feat_fc_video_relation_target_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_target[:,i,:]
-                feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
-                feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
-                pred_fc_video_source_att = self.fc_classifier_video(feat_fc_video_source_att)
-                #print('pred_fc_video_source_att: ',pred_fc_video_source_att)
-                pred_fc_video_target_att = self.fc_classifier_video(feat_fc_video_target_att)
+            feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+            feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+            pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source_att)
+            #print('pred_fc_video_source_att: ',pred_fc_video_source_att)
+            pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target_att)
+            pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source_att, beta)
+            pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target_att, beta)
 
-        feat_fc_video_source = feat_fc_video_relation_source.sum(1) # 32 x 4 x 1024 --> 32 x 1024
-        feat_fc_video_target = feat_fc_video_relation_target.sum(1) # 32 x 4 x 1024 --> 32 x 1024
 
-        pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source)
-        pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target)
+        elif 'ATT' not in self.domain_adapt_strategy:
+            feat_fc_video_source = feat_fc_video_relation_source.sum(1) # 32 x 4 x 1024 --> 32 x 1024
+            feat_fc_video_target = feat_fc_video_relation_target.sum(1) # 32 x 4 x 1024 --> 32 x 1024
 
-        pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
-        pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
-        #print('pred_fc_domain_video_source: ',pred_fc_domain_video_source)
+            pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source)
+            pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target)
+
+            pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
+            pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
+            #print('pred_fc_domain_video_source: ',pred_fc_domain_video_source)
         #what does he do in the code: he append the DOMAIN predictions of the frame-level and video-level indipendentemente
         #from the aggregation method, then appends domain_relation_predictions only if we have used TRN as aggregation method
         # or another time the same domain_video_predictions if we have used AVGPOOL as aggregation method
@@ -253,8 +257,8 @@ class Classifier(nn.Module):
             'pred_video_source': pred_fc_video_source,
             'pred_frame_target': pred_fc_target,
             'pred_video_target': pred_fc_video_target,
-            'pred_video_source_att':pred_fc_video_source_att,
-            'pred_video_target_att': pred_fc_video_target_att
+            #'pred_video_source_att':pred_fc_video_source_att,
+            #'pred_video_target_att': pred_fc_video_target_att
         }
 
         return results, {}

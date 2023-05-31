@@ -136,9 +136,10 @@ class ActionRecognition(tasks.Task, ABC):
         loss = loss_frame_source + loss_video_source
         print('loss ',loss)
         if all([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD','ATT']]):
+            #molt_factor = [1,1,1,1]
             molt_factor = [0.75,0.5,0.75,0.3]
         else:
-            molt_factor = [1,1,1]
+            molt_factor = [1,1,1,1]
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
@@ -157,8 +158,8 @@ class ActionRecognition(tasks.Task, ABC):
             entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2]).entropy()
             entropies_gvd_target = Categorical(probs=dic_logits['domain_target'][2]).entropy()
             #entropy for video label
-            entropy_video_source_label=Categorical(probs=dic_logits['pred_video_source_att'].softmax(dim=1)).entropy()
-            entropy_video_target_label = Categorical(probs=dic_logits['pred_video_target_att'].softmax(dim=1)).entropy()
+            entropy_video_source_label=Categorical(probs=dic_logits['pred_video_source'].softmax(dim=1)).entropy()
+            entropy_video_target_label = Categorical(probs=dic_logits['pred_video_target'].softmax(dim=1)).entropy()
             #sum of all entropies
             entropy_source=torch.mean((1 + entropies_gvd_source)*entropy_video_source_label)
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
