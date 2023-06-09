@@ -120,6 +120,7 @@ class ActionRecognition(tasks.Task, ABC):
             domain_source_relation=dic_logits['domain_source'][1].reshape(-1,2)
             loss_GRD_source = self.criterion(domain_source_relation, torch.cat((torch.ones((len(domain_source_relation),1)), torch.zeros((len(domain_source_relation),1))),dim=1).to(self.device))
         elif self.model_args['RGB']['avg_modality'] == 'Pooling':
+            #SE NON FACCIAMO GRD CON POOLING QUESTA LOSS O VALE 0 O NON DEVE ESSERCI
             loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1).to(self.device))
         loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1).to(self.device))
 
@@ -134,7 +135,7 @@ class ActionRecognition(tasks.Task, ABC):
         #print(loss_frame_source.shape, loss_video_source.shape, loss_GSD_source.shape, loss_GRD_source.shape, loss_GVD_source.shape, loss_GSD_target.shape, loss_GRD_target.shape, loss_GVD_target.shape)
         #loss = (loss_frame_source) + (loss_video_source)
         loss = loss_frame_source + loss_video_source
-        print('loss ',loss)
+        #print('loss ',loss)
         if all([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD','ATT']]):
             #molt_factor = [1,1,1,1]
             molt_factor = [0.75,0.5,0.75,0.3]
@@ -144,15 +145,15 @@ class ActionRecognition(tasks.Task, ABC):
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[0]*(loss_GSD_source + loss_GSD_target)
-            print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
+            #print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
             #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[1]*(loss_GRD_source + loss_GRD_target)
-            print("loss_GRD: ", molt_factor[1]*(loss_GRD_source + loss_GRD_target))
+            #print("loss_GRD: ", molt_factor[1]*(loss_GRD_source + loss_GRD_target))
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[2]*(loss_GVD_source + loss_GVD_target)
-            print("loss_GVD: ", molt_factor[2]*(loss_GVD_source + loss_GVD_target))
+            #print("loss_GVD: ", molt_factor[2]*(loss_GVD_source + loss_GVD_target))
         if 'ATT' in self.model_args['RGB']['domain_adapt_strategy']:
             #vector of entropies for all data samples
             entropies_gvd_source = Categorical(probs=dic_logits['domain_source'][2]).entropy()
@@ -164,7 +165,7 @@ class ActionRecognition(tasks.Task, ABC):
             entropy_source=torch.mean((1 + entropies_gvd_source)*entropy_video_source_label)
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
             loss += molt_factor[3]*(entropy_source + entropy_target)
-            print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
+            #print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)

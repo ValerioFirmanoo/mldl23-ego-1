@@ -126,6 +126,7 @@ class Classifier(nn.Module):
 
         if self.avg_modality == 'Pooling':
             x = self.AvgPool(x)
+            #print('before sum',x.shape)
             #x = x.view(-1, 1024)
         elif self.avg_modality == 'TRN':
             x = self.TRN(x)
@@ -140,8 +141,25 @@ class Classifier(nn.Module):
         output = base_out
         return output
 
-
-
+    def get_attn_feat_relation(self,feat_fc_video_relation, att_source):
+        #print(feat_fc_video_relation.shape)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        feat_fc_video_relation_att=torch.rand(size=feat_fc_video_relation.shape).to(device)
+        #print(feat_fc_video_relation_att.shape)
+        #print(att_source[0].reshape(-1,1).shape)
+        #print((att_source[0].reshape(-1, 1)* feat_fc_video_relation[:,0,:]).shape)
+        #print(feat_fc_video_relation_att[:,0,:].shape)
+        #print(len(att_source))
+        for i in range(0, len(att_source)):
+            # print('att_source[i]: ',att_source[i].shape)
+            # feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
+            # PENSO CHE L'ERRORE SIA QUI
+            # penso che il calcolo qui sopra dovrebbe essere:
+            feat_fc_video_relation_att[:,i,:] = (1+att_source[i].reshape(-1,1)) * feat_fc_video_relation[:,i,:]
+            # print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_source_att[:,i,:])
+            # feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
+        feat_fc_video_relation_att = feat_fc_video_relation_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+        return feat_fc_video_relation_att
 
     def forward(self, input_source, input_target):
         beta = self.beta
@@ -199,19 +217,21 @@ class Classifier(nn.Module):
         #QUA INSERIRE MOLTIPLIC PER ATTENTION
         #=== attention module ===#
         if 'ATT' in self.domain_adapt_strategy:
-            feat_fc_video_relation_source_att = feat_fc_video_relation_source.clone() # 32 x 4 x 512
-            feat_fc_video_relation_target_att = feat_fc_video_relation_target.clone()
-            for i in range(0,len(att_source)):
+            #feat_fc_video_relation_source_att = feat_fc_video_relation_source # 32 x 4 x 512
+            #feat_fc_video_relation_target_att = feat_fc_video_relation_target
+            feat_fc_video_source_att = self.get_attn_feat_relation(feat_fc_video_relation_source, att_source)
+            feat_fc_video_target_att = self.get_attn_feat_relation(feat_fc_video_relation_target, att_target)
+            #for i in range(0,len(att_source)):
                 #print('att_source[i]: ',att_source[i].shape)
                 #feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
                 #PENSO CHE L'ERRORE SIA QUI
                 #penso che il calcolo qui sopra dovrebbe essere:
-                feat_fc_video_relation_source_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_source[:,i,:]
+                #feat_fc_video_relation_source_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_source[:,i,:]
                 #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_source_att[:,i,:])
                 #feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
-                feat_fc_video_relation_target_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_target[:,i,:]
-            feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
-            feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+                #feat_fc_video_relation_target_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_target[:,i,:]
+            #feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+            #feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
             pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source_att)
             #print('pred_fc_video_source_att: ',pred_fc_video_source_att)
             pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target_att)
@@ -222,6 +242,7 @@ class Classifier(nn.Module):
         elif 'ATT' not in self.domain_adapt_strategy:
             feat_fc_video_source = feat_fc_video_relation_source.sum(1) # 32 x 4 x 1024 --> 32 x 1024
             feat_fc_video_target = feat_fc_video_relation_target.sum(1) # 32 x 4 x 1024 --> 32 x 1024
+            #print('after sum',feat_fc_video_source.shape)
 
             pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source)
             pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target)
