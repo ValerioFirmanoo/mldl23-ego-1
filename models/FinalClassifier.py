@@ -156,9 +156,13 @@ class Classifier(nn.Module):
             # PENSO CHE L'ERRORE SIA QUI
             # penso che il calcolo qui sopra dovrebbe essere:
             feat_fc_video_relation_att[:,i,:] = (1+att_source[i].reshape(-1,1)) * feat_fc_video_relation[:,i,:]
-            # print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_source_att[:,i,:])
             # feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
-        feat_fc_video_relation_att = feat_fc_video_relation_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
+        #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_att[:,2,:])
+        #print('feat_fc_video_relation_source_att: ',feat_fc_video_relation_att.shape)
+        #import pdb; pdb.set_trace()
+        feat_fc_video_relation_att = feat_fc_video_relation_att.view(-1, 1, 4, 512)
+        feat_fc_video_relation_att = nn.AvgPool2d([4,1])(feat_fc_video_relation_att)# 32 x 4 x 1024 --> 32 x 1024
+        feat_fc_video_relation_att = feat_fc_video_relation_att.squeeze(1).squeeze(1)
         return feat_fc_video_relation_att
 
     def forward(self, input_source, input_target):
@@ -209,6 +213,7 @@ class Classifier(nn.Module):
         if self.avg_modality == 'TRN': #we have 4 frames relations
             [att_source, pred_fc_domain_video_relation_source] = self.domain_classifier_relation(feat_fc_video_relation_source, beta) # 32 x 4 x 1024 --> 32 x 2
             [att_target, pred_fc_domain_video_relation_target] = self.domain_classifier_relation(feat_fc_video_relation_target, beta) # 32 x 4 x 1024 --> 32 x 2
+        #print('att_source: ',att_source[2])
 
         # === prediction (video-level) ===#
         #aggregate the frame-based features to video-based features, we can use sum() even in AVGPOOL case because we have
@@ -219,6 +224,7 @@ class Classifier(nn.Module):
         if 'ATT' in self.domain_adapt_strategy:
             #feat_fc_video_relation_source_att = feat_fc_video_relation_source # 32 x 4 x 512
             #feat_fc_video_relation_target_att = feat_fc_video_relation_target
+            #print('feat_fc_video_relation_source: ',feat_fc_video_relation_source[:,2,:])
             feat_fc_video_source_att = self.get_attn_feat_relation(feat_fc_video_relation_source, att_source)
             feat_fc_video_target_att = self.get_attn_feat_relation(feat_fc_video_relation_target, att_target)
             #for i in range(0,len(att_source)):
@@ -357,5 +363,4 @@ class GradReverse(Function):
     def backward(ctx, grad_output):
         grad_input = grad_output.neg() * ctx.beta
         return grad_input, None
-
 

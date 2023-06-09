@@ -120,7 +120,6 @@ class ActionRecognition(tasks.Task, ABC):
             domain_source_relation=dic_logits['domain_source'][1].reshape(-1,2)
             loss_GRD_source = self.criterion(domain_source_relation, torch.cat((torch.ones((len(domain_source_relation),1)), torch.zeros((len(domain_source_relation),1))),dim=1).to(self.device))
         elif self.model_args['RGB']['avg_modality'] == 'Pooling':
-            #SE NON FACCIAMO GRD CON POOLING QUESTA LOSS O VALE 0 O NON DEVE ESSERCI
             loss_GRD_source = self.criterion(dic_logits['domain_source'][1], torch.cat((torch.ones((len(dic_logits['domain_source'][1]),1)), torch.zeros((len(dic_logits['domain_source'][1]),1))),dim=1).to(self.device))
         loss_GVD_source = self.criterion(dic_logits['domain_source'][2], torch.cat((torch.ones(len(dic_logits['domain_source'][2]),1), torch.zeros(len(dic_logits['domain_source'][2]),1)),dim=1).to(self.device))
 
