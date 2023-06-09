@@ -103,7 +103,8 @@ class Classifier(nn.Module):
             #print('pred_fc_domain_relation_single: ',pred_fc_domain_relation_single)
             entropies = Categorical(probs=pred_fc_domain_relation_single).entropy()
             #print('entropies: ', entropies)
-            attention.append(1-entropies)
+            weight_factor = 0.5
+            attention.append((1-entropies) * weight_factor)
 
             if pred_fc_domain_relation_video is None:
                 pred_fc_domain_relation_video = pred_fc_domain_relation_single.view(-1,1,2)
