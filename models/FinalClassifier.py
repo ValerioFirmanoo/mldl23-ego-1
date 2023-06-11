@@ -146,6 +146,7 @@ class Classifier(nn.Module):
 
     def get_attn_feat_relation(self,feat_fc_video_relation, att_source):
         #print(feat_fc_video_relation.shape)
+        multiplier = 0.1
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         feat_fc_video_relation_att=torch.rand(size=feat_fc_video_relation.shape).to(device)
         #print(feat_fc_video_relation_att.shape)
@@ -158,6 +159,7 @@ class Classifier(nn.Module):
             # feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
             # PENSO CHE L'ERRORE SIA QUI
             # penso che il calcolo qui sopra dovrebbe essere:
+            att_source[i] = att_source[i] * multiplier
             feat_fc_video_relation_att[:,i,:] = (1+att_source[i].reshape(-1,1)) * feat_fc_video_relation[:,i,:]
             # feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
         #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_att[:,2,:])
