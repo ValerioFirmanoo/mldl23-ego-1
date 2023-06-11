@@ -30,8 +30,10 @@ class Classifier(nn.Module):
         self.relation_domain_classifier_all = nn.ModuleList()
         for i in range(self.num_clips-1):
             relation_domain_classifier = nn.Sequential(
+                nn.Dropout(0.5),
                 nn.Linear(512, 512),
                 nn.ReLU(),
+                nn.Dropout(0.5),
                 nn.Linear(512, 2),
                 nn.Softmax()
             )
@@ -103,8 +105,8 @@ class Classifier(nn.Module):
             #print('pred_fc_domain_relation_single: ',pred_fc_domain_relation_single)
             entropies = Categorical(probs=pred_fc_domain_relation_single).entropy()
             #print('entropies: ', entropies)
-            weight_factor = 0.5
-            attention.append((1-entropies) * weight_factor)
+            #weight_factor = 0.5
+            #attention.append((1-entropies) * weight_factor)
 
             if pred_fc_domain_relation_video is None:
                 pred_fc_domain_relation_video = pred_fc_domain_relation_single.view(-1,1,2)

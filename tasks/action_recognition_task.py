@@ -117,6 +117,8 @@ class ActionRecognition(tasks.Task, ABC):
 
         loss_GSD_source = self.criterion(dic_logits['domain_source'][0], torch.cat((torch.ones((len(dic_logits['domain_source'][0]),1)), torch.zeros((len(dic_logits['domain_source'][0]),1))),dim=1).to(self.device))
         if self.model_args['RGB']['avg_modality'] == 'TRN':
+            #import pdb; pdb.set_trace()
+            #dic_logits['domain_source'][1].shape
             domain_source_relation=dic_logits['domain_source'][1].reshape(-1,2)
             loss_GRD_source = self.criterion(domain_source_relation, torch.cat((torch.ones((len(domain_source_relation),1)), torch.zeros((len(domain_source_relation),1))),dim=1).to(self.device))
         elif self.model_args['RGB']['avg_modality'] == 'Pooling':
@@ -148,7 +150,7 @@ class ActionRecognition(tasks.Task, ABC):
             #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[1]*(loss_GRD_source + loss_GRD_target)
-            #print("loss_GRD: ", molt_factor[1]*(loss_GRD_source + loss_GRD_target))
+            #print("loss_GRD: ", (loss_GRD_source + loss_GRD_target))
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[2]*(loss_GVD_source + loss_GVD_target)
@@ -161,7 +163,7 @@ class ActionRecognition(tasks.Task, ABC):
             entropy_video_source_label=Categorical(probs=dic_logits['pred_video_source'].softmax(dim=1)).entropy()
             entropy_video_target_label = Categorical(probs=dic_logits['pred_video_target'].softmax(dim=1)).entropy()
             #sum of all entropies
-            entropy_source=torch.mean((1 + entropies_gvd_source)*entropy_video_source_label)
+            entropy_source=torch.mean((1 + entropies_gvd_source) * entropy_video_source_label)
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
             loss += molt_factor[3]*(entropy_source + entropy_target)
             #print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
