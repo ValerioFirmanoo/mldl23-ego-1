@@ -107,6 +107,7 @@ class Classifier(nn.Module):
             #print('entropies: ', entropies)
             #weight_factor = 0.5
             #attention.append((1-entropies) * weight_factor)
+            attention.append((1-entropies))
 
             if pred_fc_domain_relation_video is None:
                 pred_fc_domain_relation_video = pred_fc_domain_relation_single.view(-1,1,2)
