@@ -35,7 +35,6 @@ class Classifier(nn.Module):
                 nn.ReLU(),
                 nn.Dropout(0.5),
                 nn.Linear(512, 2),
-                nn.Softmax()
             )
             self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -95,19 +94,12 @@ class Classifier(nn.Module):
 
     def domain_classifier_relation(self, feat_relation, beta):
         # 32x4x1024 --> (32x4)x2
-        attention=[]
         pred_fc_domain_relation_video = None
         for i in range(len(self.relation_domain_classifier_all)):
             feat_relation_single = feat_relation[:,i,:].squeeze(1) # 32x1x1024 -> 32x1024
             feat_fc_domain_relation_single = GradReverse.apply(feat_relation_single, beta) # the same beta for all relations (for now)
 
             pred_fc_domain_relation_single = self.relation_domain_classifier_all[i](feat_fc_domain_relation_single)
-            #print('pred_fc_domain_relation_single: ',pred_fc_domain_relation_single)
-            entropies = Categorical(probs=pred_fc_domain_relation_single).entropy()
-            #print('entropies: ', entropies)
-            #weight_factor = 0.5
-            #attention.append((1-entropies) * weight_factor)
-            attention.append((1-entropies))
 
             if pred_fc_domain_relation_video is None:
                 pred_fc_domain_relation_video = pred_fc_domain_relation_single.view(-1,1,2)
@@ -116,7 +108,7 @@ class Classifier(nn.Module):
 
         pred_fc_domain_relation_video = pred_fc_domain_relation_video.view(-1,2)
 
-        return attention, pred_fc_domain_relation_video
+        return  pred_fc_domain_relation_video
 
     def domain_classifier_video(self, feat, beta):
         feat_fc_domain_video = GradReverse.apply(feat, beta)
@@ -145,31 +137,21 @@ class Classifier(nn.Module):
         output = base_out
         return output
 
-    def get_attn_feat_relation(self,feat_fc_video_relation, att_source):
-        #print(feat_fc_video_relation.shape)
-        multiplier = 0.1
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        feat_fc_video_relation_att=torch.rand(size=feat_fc_video_relation.shape).to(device)
-        #print(feat_fc_video_relation_att.shape)
-        #print(att_source[0].reshape(-1,1).shape)
-        #print((att_source[0].reshape(-1, 1)* feat_fc_video_relation[:,0,:]).shape)
-        #print(feat_fc_video_relation_att[:,0,:].shape)
-        #print(len(att_source))
-        for i in range(0, len(att_source)):
-            # print('att_source[i]: ',att_source[i].shape)
-            # feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
-            # PENSO CHE L'ERRORE SIA QUI
-            # penso che il calcolo qui sopra dovrebbe essere:
-            att_source[i] = att_source[i] * multiplier
-            feat_fc_video_relation_att[:,i,:] = (1+att_source[i].reshape(-1,1)) * feat_fc_video_relation[:,i,:]
-            # feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
-        #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_att[:,2,:])
-        #print('feat_fc_video_relation_source_att: ',feat_fc_video_relation_att.shape)
-        #import pdb; pdb.set_trace()
-        feat_fc_video_relation_att = feat_fc_video_relation_att.view(-1, 1, 4, 512)
-        feat_fc_video_relation_att = nn.AvgPool2d([4,1])(feat_fc_video_relation_att)# 32 x 4 x 1024 --> 32 x 1024
-        feat_fc_video_relation_att = feat_fc_video_relation_att.squeeze(1).squeeze(1)
-        return feat_fc_video_relation_att
+    def get_trans_attn(self, pred_domain):
+        softmax = nn.Softmax(dim=1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        entropy = torch.sum(-softmax(pred_domain) * logsoftmax(pred_domain), 1)
+        weights = 1 - entropy
+
+        return weights
+
+    def get_attn_feat_relation(self,feat_fc, pred_domain, num_segments):
+
+        weights_attn = self.get_trans_attn(pred_domain)
+        weights_attn = weights_attn.view(-1, num_segments-1, 1).repeat(1,1,feat_fc.size()[-1]) # reshape & repeat weights
+        feat_fc_attn = (weights_attn+1) * feat_fc
+
+        return feat_fc_attn, weights_attn[:,:,0]
 
     def forward(self, input_source, input_target):
         beta = self.beta
@@ -217,9 +199,17 @@ class Classifier(nn.Module):
         feat_fc_video_relation_target = self.temporal_aggregation(feat_fc_target)
 
         if self.avg_modality == 'TRN': #we have 4 frames relations
-            [att_source, pred_fc_domain_video_relation_source] = self.domain_classifier_relation(feat_fc_video_relation_source, beta) # 32 x 4 x 1024 --> 32 x 2
-            [att_target, pred_fc_domain_video_relation_target] = self.domain_classifier_relation(feat_fc_video_relation_target, beta) # 32 x 4 x 1024 --> 32 x 2
+            soft=nn.Softmax(dim=1)
+            pred_fc_domain_video_relation_source = soft(self.domain_classifier_relation(feat_fc_video_relation_source, beta)) # 32 x 4 x 1024 --> 32 x 2
+            pred_fc_domain_video_relation_target = soft(self.domain_classifier_relation(feat_fc_video_relation_target, beta)) # 32 x 4 x 1024 --> 32 x 2
         #print('att_source: ',att_source[2])
+            if 'ATT' in self.domain_adapt_strategy: # get the attention weighting
+                feat_fc_video_relation_source, attn_relation_source = self.get_attn_feat_relation(feat_fc_video_relation_source, pred_fc_domain_video_relation_source, num_segments)
+                feat_fc_video_relation_target, attn_relation_target = self.get_attn_feat_relation(feat_fc_video_relation_target, pred_fc_domain_video_relation_target, num_segments)
+
+        feat_fc_video_source = torch.sum(feat_fc_video_relation_source, 1)
+        feat_fc_video_target = torch.sum(feat_fc_video_relation_target, 1)
+
 
         # === prediction (video-level) ===#
         #aggregate the frame-based features to video-based features, we can use sum() even in AVGPOOL case because we have
@@ -227,41 +217,14 @@ class Classifier(nn.Module):
 
         #QUA INSERIRE MOLTIPLIC PER ATTENTION
         #=== attention module ===#
-        if 'ATT' in self.domain_adapt_strategy:
-            #feat_fc_video_relation_source_att = feat_fc_video_relation_source # 32 x 4 x 512
-            #feat_fc_video_relation_target_att = feat_fc_video_relation_target
-            #print('feat_fc_video_relation_source: ',feat_fc_video_relation_source[:,2,:])
-            feat_fc_video_source_att = self.get_attn_feat_relation(feat_fc_video_relation_source, att_source)
-            feat_fc_video_target_att = self.get_attn_feat_relation(feat_fc_video_relation_target, att_target)
-            #for i in range(0,len(att_source)):
-                #print('att_source[i]: ',att_source[i].shape)
-                #feat_fc_video_relation_source_att[:,i,:]=torch.matmul(att_source[i].reshape(1,-1),feat_fc_video_relation_source[:,i,:])
-                #PENSO CHE L'ERRORE SIA QUI
-                #penso che il calcolo qui sopra dovrebbe essere:
-                #feat_fc_video_relation_source_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_source[:,i,:]
-                #print('feat_fc_video_relation_source_att[:,i,:]: ',feat_fc_video_relation_source_att[:,i,:])
-                #feat_fc_video_relation_target_att[:,i,:]=torch.matmul(att_target[i].reshape(1,-1),feat_fc_video_relation_target[:,i,:])
-                #feat_fc_video_relation_target_att[:,i,:]=(1+att_source[i].reshape(-1,1)) * feat_fc_video_relation_target[:,i,:]
-            #feat_fc_video_source_att = feat_fc_video_relation_source_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
-            #feat_fc_video_target_att = feat_fc_video_relation_target_att.sum(1)  # 32 x 4 x 1024 --> 32 x 1024
-            pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source_att)
-            #print('pred_fc_video_source_att: ',pred_fc_video_source_att)
-            pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target_att)
-            pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source_att, beta)
-            pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target_att, beta)
+        pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source)
+        #print('pred_fc_video_source_att: ',pred_fc_video_source_att)
+        pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target)
+        pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
+        pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
 
 
-        elif 'ATT' not in self.domain_adapt_strategy:
-            feat_fc_video_source = feat_fc_video_relation_source.sum(1) # 32 x 4 x 1024 --> 32 x 1024
-            feat_fc_video_target = feat_fc_video_relation_target.sum(1) # 32 x 4 x 1024 --> 32 x 1024
-            #print('after sum',feat_fc_video_source.shape)
 
-            pred_fc_video_source = self.fc_classifier_video(feat_fc_video_source)
-            pred_fc_video_target = self.fc_classifier_video(feat_fc_video_target)
-
-            pred_fc_domain_video_source = self.domain_classifier_video(feat_fc_video_source, beta)
-            pred_fc_domain_video_target = self.domain_classifier_video(feat_fc_video_target, beta)
-            #print('pred_fc_domain_video_source: ',pred_fc_domain_video_source)
         #what does he do in the code: he append the DOMAIN predictions of the frame-level and video-level indipendentemente
         #from the aggregation method, then appends domain_relation_predictions only if we have used TRN as aggregation method
         # or another time the same domain_video_predictions if we have used AVGPOOL as aggregation method
