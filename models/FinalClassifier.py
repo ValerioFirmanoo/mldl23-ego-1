@@ -147,7 +147,7 @@ class Classifier(nn.Module):
 
     def get_attn_feat_relation(self,feat_fc_video_relation, att_source):
         #print(feat_fc_video_relation.shape)
-        multiplier = 0.1
+        multiplier = 1
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         feat_fc_video_relation_att=torch.rand(size=feat_fc_video_relation.shape).to(device)
         #print(feat_fc_video_relation_att.shape)
