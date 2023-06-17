@@ -6,6 +6,8 @@ import wandb
 import tasks
 from utils.logger import logger
 from torch.distributions import Categorical
+import torch.nn.functional as F
+
 
 from typing import Dict, Tuple, Any
 
@@ -139,18 +141,18 @@ class ActionRecognition(tasks.Task, ABC):
         #print('loss ',loss)
         if all([x in self.model_args['RGB']['domain_adapt_strategy'] for x in ['GSD','GRD','GVD','ATT']]):
             #molt_factor = [1,1,1,1]
-            molt_factor = [0.75,0.5,0.75,0.3]
+            molt_factor = [0.75,0.5,0.75,0.03]
         else:
             molt_factor = [1,1,1,1]
         #print(self.model_args, type(self.model_args))
         #print(self.model_args['RGB']['domain_adapt_strategy'])
         if 'GSD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[0]*(loss_GSD_source + loss_GSD_target)
-            #print("loss_GSD: ", loss_GSD_source + loss_GSD_target )
+            #print("loss_GSD: ", molt_factor[0]*(loss_GSD_source + loss_GSD_target) )
             #print('loss',loss)
         if 'GRD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[1]*(loss_GRD_source + loss_GRD_target)
-            #print("loss_GRD: ", (loss_GRD_source + loss_GRD_target))
+            #print("loss_GRD: ", molt_factor[1]*(loss_GRD_source + loss_GRD_target))
             #print('loss',loss)
         if 'GVD' in self.model_args['RGB']['domain_adapt_strategy']:
             loss += molt_factor[2]*(loss_GVD_source + loss_GVD_target)
@@ -166,7 +168,23 @@ class ActionRecognition(tasks.Task, ABC):
             entropy_source=torch.mean((1 + entropies_gvd_source) * entropy_video_source_label)
             entropy_target=torch.mean((1 + entropies_gvd_target) * entropy_video_target_label)
             loss += molt_factor[3]*(entropy_source + entropy_target)
-            #print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
+            print("loss_ATT: ", molt_factor[3]*(entropy_source + entropy_target))
+
+        if self.model_args['RGB']['confusion_loss']:
+            probs_target = dic_logits['pred_video_target'].softmax(dim=1)
+            entropies = Categorical(probs=probs_target).entropy()
+            def entropy_softmax(entropies):
+                w=1+torch.exp(-entropies)
+                w=(w*self.batch_size/torch.sum(w)).diag()
+                return w
+            w=entropy_softmax(entropies)
+            C=probs_target.T@w@probs_target
+            C = F.normalize(C, p=1, dim=1)
+            C.fill_diagonal_(0)
+            #print("loss_confusion: ", torch.mean(C))
+            loss+= torch.mean(C)
+
+
         #loss = self.criterion(fused_logits, label) / self.num_clips PERCHÈ DIVIDI PER NUM_CLIPS?
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
