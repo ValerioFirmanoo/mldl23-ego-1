@@ -273,10 +273,9 @@ class RelationModuleMultiScale(nn.Module):
         self.relations_scales = []
         self.subsample_scales = []
         for scale in self.scales:
-            relations_scale = self.return_relationset(num_frames, scale)
+            relations_scale = self.return_relationset(num_frames, scale) # generate the relations for each scale (e.g. 2-frame, 3-frame, ..., n-frame)
             self.relations_scales.append(relations_scale)
-            self.subsample_scales.append(min(self.subsample_num, len(relations_scale))) # how many samples of relation to select in each forward pass
-
+            self.subsample_scales.append(min(self.subsample_num, len(relations_scale)))
         # self.num_class = num_class
         self.num_frames = num_frames
         self.fc_fusion_scales = nn.ModuleList() # high-tech modulelist
@@ -305,10 +304,12 @@ class RelationModuleMultiScale(nn.Module):
             # iterate over the scales
             num_total_relations = len(self.relations_scales[scaleID])
             num_select_relations = self.subsample_scales[scaleID]
-            idx_relations_evensample = [int(ceil(i * num_total_relations / num_select_relations)) for i in range(num_select_relations)]
+            #idx_relations_evensample = [int(ceil(i * num_total_relations / num_select_relations)) for i in range(num_select_relations)]
+            idx_relations_randomsample = np.random.choice(num_total_relations, num_select_relations, replace=False)
+            #print(idx_relations_randomsample)
 
-            #for idx in idx_relations_randomsample:
-            for idx in idx_relations_evensample:
+            for idx in idx_relations_randomsample:
+            #for idx in idx_relations_evensample:
                 act_relation = input[:, self.relations_scales[scaleID][idx], :]
                 act_relation = act_relation.view(act_relation.size(0), self.scales[scaleID] * self.img_feature_dim)
                 act_relation = self.fc_fusion_scales[scaleID](act_relation)
