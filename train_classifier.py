@@ -91,8 +91,6 @@ def main():
                                                                        args.train.num_clips,
                                                                        args.train.dense_sampling,
                                                                        None, load_feat=True),
-                                                   # load_feat va settato =False poichè ancora non abbiamo estratto le features,
-                                                   # quando le estrarremo potremo settarlo a True
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
@@ -102,8 +100,6 @@ def main():
                                                                        args.train.num_clips,
                                                                        args.train.dense_sampling,
                                                                        None, load_feat=True),
-                                                   # load_feat va settato =False poichè ancora non abbiamo estratto le features,
-                                                   # quando le estrarremo potremo settarlo a True
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
         train(action_classifier, train_loader_source,train_loader_target, val_loader, device, num_classes)
@@ -138,7 +134,7 @@ def train(action_classifier, train_loader_source , train_loader_target, val_load
     data_loader_target = iter(train_loader_target)
     action_classifier.train(True)
     action_classifier.zero_grad()
-    iteration = action_classifier.current_iter * (args.total_batch // args.batch_size) #AGGIUNGERE UN 2*?
+    iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
 
     # the batch size should be total_batch but batch accumulation is done with batch size = batch_size.
     # real_iter is the number of iterations if the batch size was really total_batch

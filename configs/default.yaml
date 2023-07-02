@@ -55,5 +55,5 @@ models:
     num_clips: 5 # number of clips in the pooling
     num_classes: 8 # number of classes
     baseline_type: video # baseline type : video or frame
-    domain_adapt_strategy: ['GSD','GRD','GVD'] # domain adaptation strategy adopted
+    domain_adapt_strategy: ['GSD','GRD','GVD', 'ATT'] # domain adaptation strategy adopted
     confusion_loss: True # if confusion loss is adopted
