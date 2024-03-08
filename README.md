@@ -24,10 +24,6 @@ You can access the project code here:
 You can access the final paper here:
 [Project Paper](https://github.com/ValerioFirmanoo/mldl23-ego-1/blob/280a396f93e1100556233427554fa91a8899a0c5/EGOVISION-Action-Recognition.pdf)
 
-## How to Use
-
-Detailed instructions on how to setup, run experiments, and evaluate the model are provided in the `instructions.md` file.
-
 ## Results
 
 Our approach demonstrates significant improvement in egocentric action recognition performance across various domain shifts, with an average gain of ∼8% over traditional 'Source Only' methods on the EPIC-KITCHEN dataset. For detailed experimental results, refer to the `experimental_results.md` file.
