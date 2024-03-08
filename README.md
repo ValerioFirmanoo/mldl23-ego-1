@@ -26,5 +26,5 @@ You can access the final paper here:
 
 ## Results
 
-Our approach demonstrates significant improvement in egocentric action recognition performance across various domain shifts, with an average gain of ∼8% over traditional 'Source Only' methods on the EPIC-KITCHEN dataset. For detailed experimental results, refer to the `experimental_results.md` file.
+Our approach demonstrates significant improvement in egocentric action recognition performance across various domain shifts, with an average gain of ∼8% over traditional 'Source Only' methods on the EPIC-KITCHEN dataset.
 
