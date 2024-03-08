@@ -19,7 +19,7 @@ The challenge of egocentric action recognition is increasingly significant due t
 All related code and resources for this project are available in this repository. 
 
 You can access the project code here:
-[Project Code](https://github.com/ValerioFirmanoo/mldl23-ego-1/tree/dev)
+[Project Code](https://github.com/ValerioFirmanoo/mldl23-ego-1)
 
 You can access the final paper here:
 [Project Paper](https://github.com/ValerioFirmanoo/mldl23-ego-1/EGOVISION-Action-Recognition.pdf)
