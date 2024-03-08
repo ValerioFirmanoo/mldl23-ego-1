@@ -1,30 +1,34 @@
-# Starting code for course project of Machine Learning and Deep Learning (MLDL) 2023
+# Domain Adaptation for Egocentric Action Recognition
 
-## Getting started
+## Introduction
 
-You can play around with the code on your local machine, and use Google Colab for training on GPUs. 
-In all the cases it is necessary to have the reduced version of the dataset where you are running the code. For simplicity, we inserted just the necessary frames at [this link](https://politoit-my.sharepoint.com/:f:/g/personal/simone_peirone_polito_it/EqCmaEAi2oBEqEqzBZ-pIA0Bke4EGNkUEhqwApEhUp9tDw?e=DtSbMP).
+This project focuses on advancing the field of Egocentric Action Recognition through innovative domain adaptation techniques. By leveraging RGB features extracted from the EPIC KITCHEN DATASET with a 3D-inflated network, we explore different domain adaptation methods to enhance generalization across various domain shifts. Our approach combines adversarial learning modules at different temporal aggregation levels with an attentive mechanism and Minimum Class Confusion loss, achieving significant improvements over baseline models.
 
-Before starting to implement your own code, make sure to:
-1. read and study the material provided
-2. understand how all the scripts are working and interacting
-3. get familiar with the structure of the [EPIC-KITCHENS dataset](https://epic-kitchens.github.io/2022), what a sample, a clip and a frame are
-4. play around with the code in the template to familiarize with all the tools.
+## Team Members
 
-Some scripts do not need to be run (i.e., [train_classifier_scratch.py](./train_classifier_scratch.py)) but are still inserted in the template in order to make the students understand how the baseline models are obtained.
+- **Valerio Firmano** - Polytechnic of Turin - [valerio.firmano@studenti.polito.it](mailto:valerio.firmano@studenti.polito.it)
+- **Filippo Grobbo** - Polytechnic of Turin - [filippo.grobbo@studenti.polito.it](mailto:filippo.grobbo@studenti.polito.it)
+- **Matteo Bianco** - Polytechnic of Turin - [matteo.bianco@studenti.polito.it](mailto:matteo.bianco@studenti.polito.it)
 
-### 1. Local
+## Abstract
 
-You can work on your local machine directly, the code which needs to be run does not require heavy computations. 
-In order to do so a file with all the requirements for the python environment is provided [here](requirements.yaml), it contains even more packages than the strictly needed ones so if you want to install everything step-by-step just be careful to use pytorch 1.12 and torchvision 0.13. 
+The challenge of egocentric action recognition is increasingly significant due to its potential applications in various domains. Our research tackles the issue of domain shift by introducing a novel domain adaptation strategy that not only focuses on aligning feature distributions across domains but also emphasizes on reducing class confusion, leading to a robust improvement in action recognition accuracy.
 
-### 2. Google Colab
+## Code and Resources
 
-You can also run the code on [Google Colab](https://colab.research.google.com/).
+All related code and resources for this project are available in this repository. 
 
-- Upload all the scripts in this repo.
-- Prepare a proper notebook structured as the `train_classifier.py` script.
+You can access the project code here:
+[Project Code](https://github.com/ValerioFirmanoo/mldl23-ego-1/tree/dev)
 
-As a reference, `colab_runner.ipynb` provides an example of how to set up a working environment in Google Colab.
+You can access the final paper here:
+[Project Paper](https://github.com/ValerioFirmanoo/mldl23-ego-1/EGOVISION-Action-Recognition.pdf)
 
-NOTE: you need to stay connected to the Google Colab interface at all times for your python scripts to keep training.
+## How to Use
+
+Detailed instructions on how to setup, run experiments, and evaluate the model are provided in the `instructions.md` file.
+
+## Results
+
+Our approach demonstrates significant improvement in egocentric action recognition performance across various domain shifts, with an average gain of ∼8% over traditional 'Source Only' methods on the EPIC-KITCHEN dataset. For detailed experimental results, refer to the `experimental_results.md` file.
+
