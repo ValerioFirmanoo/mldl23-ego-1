@@ -22,7 +22,7 @@ You can access the project code here:
 [Project Code](https://github.com/ValerioFirmanoo/mldl23-ego-1)
 
 You can access the final paper here:
-[Project Paper](https://github.com/ValerioFirmanoo/mldl23-ego-1/EGOVISION-Action-Recognition.pdf)
+[Project Paper](https://github.com/ValerioFirmanoo/mldl23-ego-1/blob/280a396f93e1100556233427554fa91a8899a0c5/EGOVISION-Action-Recognition.pdf)
 
 ## How to Use
 
